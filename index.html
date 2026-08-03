@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Zonas de Reparto — Mercado Libre Uruguay</title>
+
+<!-- Leaflet (mapa + geometria, sin Google Maps) -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ============ BARRA SUPERIOR ============ -->
+  <header id="topbar">
+    <button id="btn-menu" class="icon-btn" aria-label="Abrir panel" title="Abrir panel">☰</button>
+    <h1>Zonas de Reparto <span class="topbar-sub">Montevideo &amp; Canelones</span></h1>
+
+    <div id="buscador-wrap">
+      <input id="buscador" type="text" placeholder="Buscar barrio… (ej: Pocitos)" autocomplete="off">
+      <div id="buscador-resultados" class="oculto"></div>
+    </div>
+  </header>
+
+  <!-- ============ PANEL LATERAL ============ -->
+  <aside id="panel">
+
+    <section class="panel-seccion">
+      <h2>Cadetes</h2>
+      <div id="lista-cadetes"><!-- generado por script.js --></div>
+    </section>
+
+    <section class="panel-seccion">
+      <h2>Zonas <span class="panel-hint">(click para activar/desactivar)</span></h2>
+      <div id="lista-zonas"><!-- generado por script.js --></div>
+    </section>
+
+    <section class="panel-seccion" id="seccion-info">
+      <h2>Barrio seleccionado</h2>
+      <div id="info-barrio" class="info-vacio">Hacé click en un barrio del mapa para ver el detalle.</div>
+    </section>
+
+    <section class="panel-seccion panel-redistribucion">
+      <h2>Redistribución</h2>
+      <p class="panel-hint">Si un cadete falta hoy, su zona se reparte automáticamente según las reglas de <code>zonas.json</code>.</p>
+      <button id="btn-falta-cadete" class="btn-primario">Falta un cadete</button>
+      <div id="redistribucion-activa" class="oculto">
+        <p><strong>Redistribución activa:</strong> <span id="redistribucion-texto"></span></p>
+        <button id="btn-restaurar" class="btn-secundario">Restaurar zonas normales</button>
+      </div>
+    </section>
+
+  </aside>
+
+  <!-- ============ MAPA ============ -->
+  <main id="mapa-wrap">
+    <div id="mapa"></div>
+  </main>
+
+</div>
+
+<!-- Modal para elegir cadete ausente -->
+<div id="modal-cadete" class="modal oculto">
+  <div class="modal-caja">
+    <h3>¿Qué cadete falta hoy?</h3>
+    <div id="modal-lista-cadetes"></div>
+    <button id="modal-cancelar" class="btn-secundario">Cancelar</button>
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
