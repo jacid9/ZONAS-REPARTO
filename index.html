@@ -37,6 +37,7 @@
 
     <section class="panel-seccion">
       <h2>Zonas <span class="panel-hint">(click para activar/desactivar)</span></h2>
+      <p class="panel-hint">El relleno de cada barrio es el color del <b>cadete</b> que lo cubre. El borde es el color fijo de su zona (siempre igual, para ubicarte geográficamente).</p>
       <div id="lista-zonas"><!-- generado por script.js --></div>
     </section>
 
@@ -84,10 +85,10 @@
   </div>
 </div>
 
-<!-- Modal para agregar un cadete nuevo -->
+<!-- Modal para agregar/editar un cadete -->
 <div id="modal-nuevo-cadete" class="modal oculto">
   <div class="modal-caja">
-    <h3>Nuevo cadete</h3>
+    <h3 id="modal-nuevo-cadete-titulo">Nuevo cadete</h3>
     <label class="campo-label">Nombre</label>
     <input id="input-nombre-cadete" type="text" class="campo-input" placeholder="Ej: Ernesto">
     <label class="campo-label">Color en el mapa</label>

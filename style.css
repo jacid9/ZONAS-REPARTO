@@ -206,6 +206,20 @@ code {
   border-radius: 3px;
   flex-shrink: 0;
 }
+.cadete-editar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--font-ui);
+  color: var(--panel-text);
+}
+.cadete-editar:hover .cadete-nombre { text-decoration: underline; }
 .cadete-nombre { font-weight: 600; flex: 1; }
 .cadete-meta {
   font-family: var(--font-mono);
