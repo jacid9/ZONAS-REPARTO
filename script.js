@@ -64,7 +64,8 @@ const STATE = {
   redistribucionActiva: null,    // nombre del cadete ausente, o null
   capaSeleccionada: null,
   editMode: false,               // modo edicion (asignar barrio a mano) activo/no
-  barrioEnEdicion: null          // nombre del barrio que se esta asignando ahora mismo
+  barrioEnEdicion: null,         // nombre del barrio que se esta asignando ahora mismo
+  zonaEnEdicion: null            // zona que se esta asignando en bloque ahora mismo
 };
 
 /* ========================================================================= */
@@ -487,8 +488,13 @@ function renderZonas() {
       <span class="zona-color-dot" style="background:${colorZona(zona)}"></span>
       <span class="zona-nombre">Zona ${zona}</span>
       <span class="zona-count">${cantidad} barrios</span>
+      <button class="zona-asignar-btn" data-zona="${zona}" title="Asignar toda esta zona a un cadete">→ Cadete</button>
     `;
     chip.addEventListener("click", () => toggleZona(zona, chip));
+    chip.querySelector(".zona-asignar-btn").addEventListener("click", (e) => {
+      e.stopPropagation(); // que no dispare el toggle de mostrar/ocultar la zona
+      abrirModalAsignarZona(zona);
+    });
     cont.appendChild(chip);
   });
 }
@@ -654,6 +660,7 @@ function inicializarModoEdicion() {
 
   inicializarModalNuevoCadete();
   inicializarModalAsignarBarrio();
+  inicializarModalAsignarZona();
 
   mostrarAvisoCambiosSinGuardar();
 }
@@ -741,6 +748,67 @@ function abrirModalAsignarBarrio(feature, layer) {
 function repintarUnBarrio(nombre) {
   const layer = STATE.featureLayerPorNombre[nombre];
   if (layer) layer.setStyle(estiloDeBarrio(nombre));
+}
+
+/* --- asignar una ZONA ENTERA de una sola vez ------------------------------ */
+
+function barriosDeZona(zona) {
+  return Object.keys(STATE.zonas.barrios || {}).filter(
+    (nombre) => STATE.zonas.barrios[nombre] === zona
+  );
+}
+
+function inicializarModalAsignarZona() {
+  const modal = document.getElementById("modal-asignar-zona");
+  const btnCancelar = document.getElementById("modal-asignar-zona-cancelar");
+  const btnQuitar = document.getElementById("btn-quitar-asignacion-zona");
+
+  btnCancelar.addEventListener("click", () => modal.classList.add("oculto"));
+  modal.addEventListener("click", (e) => { if (e.target === modal) modal.classList.add("oculto"); });
+
+  btnQuitar.addEventListener("click", () => {
+    if (!STATE.zonaEnEdicion) return;
+    barriosDeZona(STATE.zonaEnEdicion).forEach((nombre) => delete STATE.zonas.asignaciones[nombre]);
+    guardarCambiosLocales();
+    repintarTodo();
+    renderZonas();
+    modal.classList.add("oculto");
+  });
+}
+
+function abrirModalAsignarZona(zona) {
+  STATE.zonaEnEdicion = zona;
+  document.getElementById("asignar-zona-titulo").textContent = `Asignar Zona ${zona} a…`;
+
+  const lista = document.getElementById("asignar-zona-lista");
+  const nombresCadetes = Object.keys(STATE.zonas.cadetes || {}).filter((k) => !k.startsWith("_"));
+
+  if (nombresCadetes.length === 0) {
+    lista.innerHTML = `<p class="panel-hint">Todavía no agregaste ningún cadete. Cerrá esto y usá "+ Agregar cadete" primero.</p>`;
+  } else {
+    lista.innerHTML = nombresCadetes
+      .map(
+        (nombreCadete) => `
+        <button class="modal-opcion asignar-opcion-cadete" data-nombre="${nombreCadete}">
+          <span class="zona-color-dot" style="background:${colorDeCadete(nombreCadete)}"></span>
+          ${nombreCadete}
+        </button>`
+      )
+      .join("");
+    lista.querySelectorAll(".asignar-opcion-cadete").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        barriosDeZona(zona).forEach((nombreBarrioZona) => {
+          STATE.zonas.asignaciones[nombreBarrioZona] = btn.dataset.nombre;
+        });
+        guardarCambiosLocales();
+        repintarTodo();
+        renderZonas();
+        document.getElementById("modal-asignar-zona").classList.add("oculto");
+      });
+    });
+  }
+
+  document.getElementById("modal-asignar-zona").classList.remove("oculto");
 }
 
 /* ========================================================================= */
