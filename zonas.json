@@ -80,22 +80,147 @@
   },
   "cadetes": {
     "_comentario": "EJEMPLO — reemplazá esto por tus cadetes y las zonas reales que cubre cada uno. 'zonas' son las zonas que cubre por defecto. 'color' es el color que se usa SOLO cuando a ese cadete se le asigna manualmente un barrio de otra zona (ver 'asignaciones'). Esto tambien se puede armar y editar desde la pagina, con el boton 'Agregar cadete'.",
-    "Damian": { "zonas": ["6", "7"], "color": "#e6194B" },
-    "Bruno": { "zonas": ["1", "2"], "color": "#3cb44b" },
-    "Diego": { "zonas": ["3", "4"], "color": "#f58231" },
-    "Guzman": { "zonas": ["5"], "color": "#911eb4" }
+    "Damian": {
+      "zonas": [
+        "6",
+        "7"
+      ],
+      "color": "#e6194B"
+    },
+    "Bruno": {
+      "zonas": [
+        "1",
+        "2"
+      ],
+      "color": "#3cb44b"
+    },
+    "Diego": {
+      "zonas": [
+        "3",
+        "4"
+      ],
+      "color": "#f58231"
+    },
+    "Guzman": {
+      "zonas": [
+        "5"
+      ],
+      "color": "#911eb4"
+    },
+    "Dario": {
+      "zonas": [],
+      "color": "#0b8e74"
+    },
+    "Gerardo": {
+      "zonas": [],
+      "color": "#75ce1c"
+    },
+    "Sin Cadete": {
+      "zonas": [],
+      "color": "#797777"
+    },
+    "Camioneta": {
+      "zonas": [],
+      "color": "#9f1eb8"
+    },
+    "Agustin": {
+      "zonas": [],
+      "color": "#37ff00"
+    },
+    "Ernesto": {
+      "zonas": [],
+      "color": "#1b2946"
+    },
+    "Gabriel pereira": {
+      "zonas": [],
+      "color": "#747576"
+    }
   },
   "asignaciones": {
-    "_comentario": "Asignaciones manuales por barrio, que pisan la zona por defecto. Nombre del barrio (igual que en barrios.geojson) -> nombre del cadete. Se editan desde el 'Modo edicion' de la pagina, click en un barrio. Ese barrio se pinta con el color del cadete, no el de su zona."
+    "_comentario": "Asignaciones manuales por barrio, que pisan la zona por defecto. Nombre del barrio (igual que en barrios.geojson) -> nombre del cadete. Se editan desde el 'Modo edicion' de la pagina, click en un barrio. Ese barrio se pinta con el color del cadete, no el de su zona.",
+    "CASABO PAJAS BLANCAS": "Dario",
+    "LA PALOMA TOMKINSON": "Dario",
+    "NUEVO PARIS": "Dario",
+    "PASO DE LA ARENA": "Dario",
+    "TRES OMBUES PBLO VICTORIA": "Dario",
+    "CERRO": "Dario",
+    "COLON CENTRO Y NOROESTE": "Ernesto",
+    "COLON SURESTE ABAYUBA": "Ernesto",
+    "CONCILIACION": "Ernesto",
+    "LEZICA MELILLA": "Ernesto",
+    "MANGA": "Agustin",
+    "MANGA TOLEDO CHICO": "Agustin",
+    "VILLA GARCIA MANGA RURAL": "Agustin",
+    "BAÑADOS DE CARRASCO": "Sin Cadete",
+    "PUNTA RIELES BELLA ITALIA": "Agustin",
+    "BUCEO": "Bruno",
+    "CARRASCO": "Bruno",
+    "CARRASCO NORTE": "Bruno",
+    "FLOR DE MARONAS": "Agustin",
+    "LAS CANTERAS": "Bruno",
+    "MALVIN": "Bruno",
+    "MALVIN NORTE": "Bruno",
+    "MARONAS PARQUE GUARANI": "Agustin",
+    "PUNTA GORDA": "Bruno",
+    "UNION": "Bruno",
+    "AGUADA": "Damian",
+    "BARRIO SUR": "Damian",
+    "CENTRO": "Damian",
+    "CIUDAD VIEJA": "Damian",
+    "CORDON": "Damian",
+    "JACINTO VERA": "Damian",
+    "LA BLANQUEADA": "Damian",
+    "LA COMERCIAL": "Damian",
+    "FIGURITA": "Damian",
+    "LARRANAGA": "Damian",
+    "PALERMO": "Damian",
+    "PARQUE RODO": "Damian",
+    "POCITOS": "Bruno",
+    "PUNTA CARRETAS": "Bruno",
+    "REDUCTO": "Camioneta",
+    "TRES CRUCES": "Damian",
+    "PQUE BATLLE VILLA DOLORES": "Bruno",
+    "VILLA MUÑOZ RETIRO": "Damian",
+    "PUERTO": "Damian",
+    "AIRES PUROS": "Camioneta",
+    "ATAHUALPA": "Dario",
+    "BELVEDERE": "Dario",
+    "BRAZO ORIENTAL": "Ernesto",
+    "CAPURRO BELLA VISTA": "Camioneta",
+    "CASAVALLE": "Agustin",
+    "CASTRO CASTELLANOS": "Camioneta",
+    "CERRITO": "Ernesto",
+    "ITUZAINGO": "Camioneta",
+    "JARDINES DEL HIPODROMO": "Ernesto",
+    "LA TEJA": "Dario",
+    "LAS ACACIAS": "Ernesto",
+    "MERCADO MODELO Y BOLIVAR": "Camioneta",
+    "PASO DE LAS DURANAS": "Ernesto",
+    "PENAROL LAVALLEJA": "Ernesto",
+    "PIEDRAS BLANCAS": "Agustin",
+    "PRADO NUEVA SAVONA": "Dario",
+    "SAYAGO": "Ernesto",
+    "VILLA ESPANOLA": "Camioneta"
   },
   "paquetes": {
     "_comentario": "OPCIONAL — cantidad de paquetes por barrio, para mostrar en el popup al hacer click. Nombre del barrio (igual que en barrios.geojson) -> numero. Si un barrio no aparece aca, simplemente no se muestra ese dato."
   },
   "redistribucion": {
     "_comentario": "EJEMPLO — que pasa si falta un cadete. La clave es el nombre del cadete ausente. El valor mapea cada zona que el cubria hacia la zona que la absorbe (esa zona pasa a pintarse con el color de la zona que la absorbe). No hace falta tocar el codigo, solo este JSON.",
-    "Damian": { "6": "7", "7": "1" },
-    "Bruno": { "1": "6", "2": "3" },
-    "Diego": { "3": "5", "4": "5" },
-    "Guzman": { "5": "6" }
+    "Damian": {
+      "6": "7",
+      "7": "1"
+    },
+    "Bruno": {
+      "1": "6",
+      "2": "3"
+    },
+    "Diego": {
+      "3": "5",
+      "4": "5"
+    },
+    "Guzman": {
+      "5": "6"
+    }
   }
 }
