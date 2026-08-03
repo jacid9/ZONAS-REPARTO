@@ -212,6 +212,16 @@ code {
   font-size: 11px;
   color: var(--panel-text-dim);
 }
+.cadete-borrar {
+  background: none;
+  border: none;
+  color: var(--panel-text-dim);
+  cursor: pointer;
+  font-size: 13px;
+  padding: 2px 4px;
+  flex-shrink: 0;
+}
+.cadete-borrar:hover { color: #e6194B; }
 
 /* -- lista de zonas / capas -- */
 
@@ -354,6 +364,73 @@ code {
 .modal-opcion:hover { background: #f0f2f5; }
 
 .oculto { display: none !important; }
+
+/* ---------------------------------------------------------- edicion / cadetes */
+
+.btn-chico {
+  width: auto;
+  padding: 6px 10px;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.btn-secundario.activo {
+  background: var(--accent);
+  color: #21160a;
+  border-color: var(--accent);
+  font-weight: 700;
+}
+
+.panel-hint.aviso {
+  color: #f2c98a;
+}
+
+#cambios-sin-guardar {
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: 8px;
+  background: var(--panel-bg-alt);
+  border: 1px solid var(--panel-border);
+}
+#cambios-sin-guardar .btn-primario,
+#cambios-sin-guardar .btn-secundario { margin-top: 8px; }
+
+.campo-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  margin: 10px 0 4px;
+  color: #5a6472;
+}
+.campo-input {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid #dfe4ea;
+  font-size: 14px;
+  font-family: var(--font-ui);
+}
+.campo-color {
+  width: 100%;
+  height: 38px;
+  border-radius: 8px;
+  border: 1px solid #dfe4ea;
+  padding: 2px;
+  cursor: pointer;
+}
+#modal-nuevo-cadete .btn-primario,
+#modal-nuevo-cadete .btn-secundario,
+#modal-asignar-barrio .btn-secundario { margin-top: 10px; }
+
+.asignar-opcion-cadete {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* cursor especial cuando el modo edicion esta activo, para que quede claro
+   que un click en el mapa ahora asigna en vez de solo mostrar info */
+#mapa.modo-edicion-activo { cursor: crosshair; }
 
 /* --------------------------------------------------------------- utility */
 

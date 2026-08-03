@@ -79,11 +79,14 @@
     "VILLA ESPANOLA": "7"
   },
   "cadetes": {
-    "_comentario": "EJEMPLO — reemplazá esto por tus cadetes y las zonas reales que cubre cada uno. La clave es el nombre del cadete, el valor es la lista de zonas (numeros como texto) que reparte.",
-    "Damian": { "zonas": ["6", "7"] },
-    "Bruno": { "zonas": ["1", "2"] },
-    "Diego": { "zonas": ["3", "4"] },
-    "Guzman": { "zonas": ["5"] }
+    "_comentario": "EJEMPLO — reemplazá esto por tus cadetes y las zonas reales que cubre cada uno. 'zonas' son las zonas que cubre por defecto. 'color' es el color que se usa SOLO cuando a ese cadete se le asigna manualmente un barrio de otra zona (ver 'asignaciones'). Esto tambien se puede armar y editar desde la pagina, con el boton 'Agregar cadete'.",
+    "Damian": { "zonas": ["6", "7"], "color": "#e6194B" },
+    "Bruno": { "zonas": ["1", "2"], "color": "#3cb44b" },
+    "Diego": { "zonas": ["3", "4"], "color": "#f58231" },
+    "Guzman": { "zonas": ["5"], "color": "#911eb4" }
+  },
+  "asignaciones": {
+    "_comentario": "Asignaciones manuales por barrio, que pisan la zona por defecto. Nombre del barrio (igual que en barrios.geojson) -> nombre del cadete. Se editan desde el 'Modo edicion' de la pagina, click en un barrio. Ese barrio se pinta con el color del cadete, no el de su zona."
   },
   "paquetes": {
     "_comentario": "OPCIONAL — cantidad de paquetes por barrio, para mostrar en el popup al hacer click. Nombre del barrio (igual que en barrios.geojson) -> numero. Si un barrio no aparece aca, simplemente no se muestra ese dato."

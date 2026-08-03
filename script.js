@@ -6,15 +6,17 @@
      1. CONFIG
      2. ESTADO GLOBAL
      3. CARGA DE DATOS (barrios.geojson + zonas.json [+ canelones.geojson opc.])
-     4. INICIALIZACION DEL MAPA
-     5. RENDER DE ZONAS (pintado de barrios)
-     6. INFO / POPUP DE BARRIO
-     7. PANEL LATERAL — cadetes
-     8. PANEL LATERAL — zonas (capas on/off)
-     9. BUSCADOR
-     10. REDISTRIBUCION ("Falta un cadete")
-     11. RESPONSIVE — panel movil
-     12. ARRANQUE
+     4. PERSISTENCIA LOCAL (guardar cambios en este navegador + exportar/restablecer)
+     5. INICIALIZACION DEL MAPA
+     6. RENDER DE ZONAS (pintado de barrios, con soporte de asignacion manual)
+     7. INFO / POPUP DE BARRIO
+     8. PANEL LATERAL — cadetes (listar + agregar)
+     9. PANEL LATERAL — zonas (capas on/off)
+     10. BUSCADOR
+     11. REDISTRIBUCION ("Falta un cadete")
+     12. MODO EDICION — asignar un barrio a mano a cualquier cadete
+     13. RESPONSIVE — panel movil
+     14. ARRANQUE
    ============================================================================= */
 
 /* ========================================================================= */
@@ -60,7 +62,9 @@ const STATE = {
   zonasActivas: new Set(),       // zonas visibles actualmente
   colorZonaEfectivo: {},         // color a usar por zona (cambia con redistribucion)
   redistribucionActiva: null,    // nombre del cadete ausente, o null
-  capaSeleccionada: null
+  capaSeleccionada: null,
+  editMode: false,               // modo edicion (asignar barrio a mano) activo/no
+  barrioEnEdicion: null          // nombre del barrio que se esta asignando ahora mismo
 };
 
 /* ========================================================================= */
@@ -95,6 +99,12 @@ async function cargarDatos() {
 
   STATE.geojsonBarrios = barrios;
   STATE.zonas = zonas;
+  if (!STATE.zonas.cadetes) STATE.zonas.cadetes = {};
+  if (!STATE.zonas.asignaciones) STATE.zonas.asignaciones = {};
+
+  // Si en este navegador ya se agregaron cadetes o asignaciones antes, los
+  // traemos por encima de lo que venga en zonas.json.
+  cargarCambiosLocales();
 }
 
 function mostrarErrorCarga(err) {
@@ -116,7 +126,82 @@ function mostrarErrorCarga(err) {
 }
 
 /* ========================================================================= */
-/* 4. INICIALIZACION DEL MAPA                                                 */
+/* 4. PERSISTENCIA LOCAL                                                      */
+/*    Esta pagina no tiene servidor propio: los cadetes que agregues y las    */
+/*    asignaciones manuales que hagas se guardan en el navegador (localStorage)*/
+/*    para que no se pierdan al recargar. Para que el cambio se vea en el     */
+/*    link que usan los demas, hay que exportar y subir el archivo a GitHub.  */
+/* ========================================================================= */
+
+const LS_KEY = "zonasReparto_overrides_v1";
+
+function guardarCambiosLocales() {
+  const datos = {
+    cadetes: STATE.zonas.cadetes,
+    asignaciones: STATE.zonas.asignaciones,
+    redistribucion: STATE.zonas.redistribucion
+  };
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify(datos));
+  } catch (_) {
+    // Si el navegador bloquea localStorage (modo privado, etc.) seguimos
+    // funcionando igual, solo que no persiste entre recargas.
+  }
+  mostrarAvisoCambiosSinGuardar();
+}
+
+function cargarCambiosLocales() {
+  let guardado;
+  try {
+    guardado = localStorage.getItem(LS_KEY);
+  } catch (_) {
+    return;
+  }
+  if (!guardado) return;
+  try {
+    const datos = JSON.parse(guardado);
+    if (datos.cadetes) STATE.zonas.cadetes = datos.cadetes;
+    if (datos.asignaciones) STATE.zonas.asignaciones = datos.asignaciones;
+    if (datos.redistribucion) STATE.zonas.redistribucion = datos.redistribucion;
+  } catch (_) {
+    // JSON corrupto en localStorage: lo ignoramos y seguimos con zonas.json tal cual.
+  }
+}
+
+function hayCambiosLocales() {
+  try {
+    return !!localStorage.getItem(LS_KEY);
+  } catch (_) {
+    return false;
+  }
+}
+
+function mostrarAvisoCambiosSinGuardar() {
+  document.getElementById("cambios-sin-guardar").classList.toggle("oculto", !hayCambiosLocales());
+}
+
+function exportarZonasJSON() {
+  const blob = new Blob([JSON.stringify(STATE.zonas, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "zonas.json";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function restablecerCambiosLocales() {
+  if (!confirm("Esto borra los cadetes y asignaciones manuales que agregaste en este navegador, y vuelve al zonas.json original. ¿Continuar?")) return;
+  try {
+    localStorage.removeItem(LS_KEY);
+  } catch (_) {}
+  location.reload();
+}
+
+/* ========================================================================= */
+/* 5. INICIALIZACION DEL MAPA                                                 */
 /* ========================================================================= */
 
 function inicializarMapa() {
@@ -133,11 +218,24 @@ function inicializarMapa() {
 }
 
 /* ========================================================================= */
-/* 5. RENDER DE ZONAS (pintado de barrios)                                    */
+/* 6. RENDER DE ZONAS (pintado de barrios, con soporte de asignacion manual) */
 /* ========================================================================= */
 
 function colorZona(zona) {
   return STATE.colorZonaEfectivo[zona] || STATE.zonas.colores[zona] || "#999999";
+}
+
+// Paleta de reserva para cadetes que se agregan sin elegir color (no deberia
+// pasar desde el formulario, pero por las dudas no se rompe nada).
+const PALETA_CADETES_RESERVA = ["#2f6fed", "#e6194B", "#3cb44b", "#f58231", "#911eb4", "#42d4f4", "#f032e6", "#469990"];
+
+function colorDeCadete(nombreCadete) {
+  const datos = (STATE.zonas.cadetes || {})[nombreCadete];
+  if (datos && datos.color) return datos.color;
+  // fallback deterministico en base al nombre, para que no cambie en cada recarga
+  let hash = 0;
+  for (let i = 0; i < nombreCadete.length; i++) hash = nombreCadete.charCodeAt(i) + ((hash << 5) - hash);
+  return PALETA_CADETES_RESERVA[Math.abs(hash) % PALETA_CADETES_RESERVA.length];
 }
 
 function nombreBarrio(feature) {
@@ -146,6 +244,18 @@ function nombreBarrio(feature) {
 
 function zonaDeBarrio(nombre) {
   return (STATE.zonas.barrios || {})[nombre] || null;
+}
+
+// Si el barrio tiene una asignacion manual, esa gana. Si no, el cadete por
+// defecto de su zona (o null si nadie cubre esa zona).
+function cadeteDeBarrio(nombre) {
+  const asignado = (STATE.zonas.asignaciones || {})[nombre];
+  if (asignado) return asignado;
+  return cadeteDeZona(zonaDeBarrio(nombre));
+}
+
+function tieneAsignacionManual(nombre) {
+  return !!(STATE.zonas.asignaciones || {})[nombre];
 }
 
 function construirCapas() {
@@ -166,7 +276,7 @@ function construirCapas() {
     const capa = L.geoJSON(
       { type: "FeatureCollection", features: porZona[zona] },
       {
-        style: () => estiloDeZona(zona),
+        style: (feature) => estiloDeBarrio(nombreBarrio(feature)),
         onEachFeature: (feature, layer) => {
           const nombre = nombreBarrio(feature);
           STATE.featureLayerPorNombre[nombre] = layer;
@@ -174,9 +284,12 @@ function construirCapas() {
             if (STATE.capaSeleccionada !== layer) layer.setStyle(CONFIG.estiloHover);
           });
           layer.on("mouseout", () => {
-            if (STATE.capaSeleccionada !== layer) layer.setStyle(estiloDeZona(zonaDeBarrio(nombre)));
+            if (STATE.capaSeleccionada !== layer) layer.setStyle(estiloDeBarrio(nombre));
           });
-          layer.on("click", () => seleccionarBarrio(feature, layer));
+          layer.on("click", () => {
+            if (STATE.editMode) abrirModalAsignarBarrio(feature, layer);
+            else seleccionarBarrio(feature, layer);
+          });
         }
       }
     );
@@ -191,6 +304,24 @@ function estiloDeZona(zona) {
     color: shadeColor(colorZona(zona), -20),
     fillColor: colorZona(zona)
   });
+}
+
+// Como estiloDeZona, pero si el barrio tiene asignacion manual usa el color
+// del cadete y un borde punteado mas grueso, para que se note a simple vista
+// que ese barrio "no sigue la regla" de su zona.
+function estiloDeBarrio(nombre) {
+  const asignado = (STATE.zonas.asignaciones || {})[nombre];
+  if (asignado) {
+    const color = colorDeCadete(asignado);
+    return Object.assign({}, CONFIG.estiloBase, {
+      color: shadeColor(color, -25),
+      fillColor: color,
+      weight: 3,
+      dashArray: "5,4",
+      fillOpacity: 0.65
+    });
+  }
+  return estiloDeZona(zonaDeBarrio(nombre));
 }
 
 // Oscurece/aclara un color hex un porcentaje (para el borde del poligono)
@@ -209,47 +340,48 @@ function repintarTodo() {
   Object.keys(STATE.capasPorZona).forEach((zona) => {
     STATE.capasPorZona[zona].eachLayer((layer) => {
       const nombre = nombreBarrio(layer.feature);
-      layer.setStyle(estiloDeZona(zonaDeBarrio(nombre)));
+      layer.setStyle(estiloDeBarrio(nombre));
     });
   });
 }
 
 /* ========================================================================= */
-/* 6. INFO / POPUP DE BARRIO                                                  */
+/* 7. INFO / POPUP DE BARRIO                                                  */
 /* ========================================================================= */
 
 function seleccionarBarrio(feature, layer) {
   if (STATE.capaSeleccionada) {
     const prevNombre = nombreBarrio(STATE.capaSeleccionada.feature);
-    STATE.capaSeleccionada.setStyle(estiloDeZona(zonaDeBarrio(prevNombre)));
+    STATE.capaSeleccionada.setStyle(estiloDeBarrio(prevNombre));
   }
   STATE.capaSeleccionada = layer;
   layer.setStyle(CONFIG.estiloSeleccionado);
 
   const nombre = nombreBarrio(feature);
   const zona = zonaDeBarrio(nombre);
-  const cadete = cadeteDeZona(zona);
+  const cadete = cadeteDeBarrio(nombre);
+  const manual = tieneAsignacionManual(nombre);
   const paquetes = (STATE.zonas.paquetes || {})[nombre];
 
   const html = `
     <div class="popup-barrio">
       <h3>${tituloCase(nombre)}</h3>
       <div class="info-fila"><b>Zona</b><span>${zona ? "Zona " + zona : "—"}</span></div>
-      <div class="info-fila"><b>Cadete</b><span>${cadete || "Sin asignar"}</span></div>
+      <div class="info-fila"><b>Cadete</b><span>${cadete || "Sin asignar"}${manual ? " (manual)" : ""}</span></div>
       ${paquetes !== undefined ? `<div class="info-fila"><b>Paquetes</b><span>${paquetes}</span></div>` : ""}
     </div>`;
 
   layer.bindPopup(html).openPopup();
-  actualizarPanelInfo(nombre, zona, cadete, paquetes);
+  actualizarPanelInfo(nombre, zona, cadete, paquetes, manual);
 }
 
-function actualizarPanelInfo(nombre, zona, cadete, paquetes) {
+function actualizarPanelInfo(nombre, zona, cadete, paquetes, manual) {
   const el = document.getElementById("info-barrio");
   el.classList.remove("info-vacio");
   el.innerHTML = `
     <div class="info-fila"><b>Nombre</b><span>${tituloCase(nombre)}</span></div>
     <div class="info-fila"><b>Zona</b><span>${zona ? "Zona " + zona : "—"}</span></div>
-    <div class="info-fila"><b>Cadete</b><span>${cadete || "Sin asignar"}</span></div>
+    <div class="info-fila"><b>Cadete</b><span>${cadete || "Sin asignar"}${manual ? " (manual)" : ""}</span></div>
     ${paquetes !== undefined ? `<div class="info-fila"><b>Paquetes</b><span>${paquetes}</span></div>` : ""}
   `;
 }
@@ -272,36 +404,70 @@ function cadeteDeZona(zona) {
 }
 
 /* ========================================================================= */
-/* 7. PANEL LATERAL — cadetes                                                 */
+/* 8. PANEL LATERAL — cadetes (listar + agregar)                              */
 /* ========================================================================= */
 
 function renderCadetes() {
   const cont = document.getElementById("lista-cadetes");
   cont.innerHTML = "";
   const cadetes = STATE.zonas.cadetes || {};
+  const nombres = Object.keys(cadetes).filter((k) => !k.startsWith("_"));
 
-  Object.entries(cadetes).forEach(([nombre, datos]) => {
-    if (nombre.startsWith("_")) return;
-    const zonasTxt = (datos.zonas || []).map((z) => "Z" + z).join(", ");
-    const colorMuestra = (datos.zonas || [])[0] ? colorZona(datos.zonas[0]) : "#999";
+  nombres.forEach((nombre) => {
+    const datos = cadetes[nombre];
+    const zonasTxt = (datos.zonas || []).length ? (datos.zonas || []).map((z) => "Z" + z).join(", ") : "sin zona fija";
     const div = document.createElement("div");
     div.className = "cadete-item";
     if (STATE.redistribucionActiva === nombre) div.classList.add("reasignado");
     div.innerHTML = `
-      <span class="cadete-swatch" style="background:${colorMuestra}"></span>
+      <span class="cadete-swatch" style="background:${colorDeCadete(nombre)}"></span>
       <span class="cadete-nombre">${nombre}</span>
       <span class="cadete-meta">${zonasTxt}</span>
+      <button class="cadete-borrar" data-nombre="${nombre}" title="Eliminar cadete">✕</button>
     `;
     cont.appendChild(div);
   });
 
-  if (Object.keys(cadetes).filter((k) => !k.startsWith("_")).length === 0) {
-    cont.innerHTML = `<p class="panel-hint">No hay cadetes cargados en zonas.json todavía.</p>`;
+  if (nombres.length === 0) {
+    cont.innerHTML = `<p class="panel-hint">No hay cadetes cargados todavía.</p>`;
   }
+
+  cont.querySelectorAll(".cadete-borrar").forEach((btn) => {
+    btn.addEventListener("click", () => eliminarCadete(btn.dataset.nombre));
+  });
+}
+
+function agregarCadete(nombre, color) {
+  nombre = nombre.trim();
+  if (!nombre) {
+    alert("Poné un nombre para el cadete.");
+    return false;
+  }
+  if (STATE.zonas.cadetes[nombre]) {
+    alert(`Ya existe un cadete llamado "${nombre}".`);
+    return false;
+  }
+  STATE.zonas.cadetes[nombre] = { zonas: [], color: color };
+  guardarCambiosLocales();
+  renderCadetes();
+  return true;
+}
+
+function eliminarCadete(nombre) {
+  if (!confirm(`¿Eliminar a ${nombre}? Los barrios que tenía asignados a mano vuelven a su zona normal.`)) return;
+  delete STATE.zonas.cadetes[nombre];
+  // Limpiamos asignaciones manuales que apuntaban a este cadete, para no dejar
+  // barrios "asignados" a alguien que ya no existe.
+  Object.keys(STATE.zonas.asignaciones || {}).forEach((barrio) => {
+    if (STATE.zonas.asignaciones[barrio] === nombre) delete STATE.zonas.asignaciones[barrio];
+  });
+  guardarCambiosLocales();
+  renderCadetes();
+  repintarTodo();
 }
 
 /* ========================================================================= */
-/* 8. PANEL LATERAL — zonas (capas on/off)                                   */
+/* 9. PANEL LATERAL — zonas (capas on/off)                                    */
 /* ========================================================================= */
 
 function renderZonas() {
@@ -341,7 +507,7 @@ function toggleZona(zona, chipEl) {
 }
 
 /* ========================================================================= */
-/* 9. BUSCADOR                                                               */
+/* 10. BUSCADOR                                                               */
 /* ========================================================================= */
 
 function inicializarBuscador() {
@@ -397,7 +563,7 @@ function irABarrio(nombre) {
 }
 
 /* ========================================================================= */
-/* 10. REDISTRIBUCION ("Falta un cadete")                                    */
+/* 11. REDISTRIBUCION ("Falta un cadete")                                     */
 /* ========================================================================= */
 
 function inicializarRedistribucion() {
@@ -466,7 +632,119 @@ function restaurarZonasNormales() {
 }
 
 /* ========================================================================= */
-/* 11. RESPONSIVE — panel movil                                              */
+/* 12. MODO EDICION — asignar un barrio a mano a cualquier cadete             */
+/* ========================================================================= */
+
+function inicializarModoEdicion() {
+  const btnModo = document.getElementById("btn-modo-edicion");
+  const btnAgregarCadete = document.getElementById("btn-agregar-cadete");
+  const btnExportar = document.getElementById("btn-exportar");
+  const btnRestablecer = document.getElementById("btn-restablecer");
+
+  btnModo.addEventListener("click", () => {
+    STATE.editMode = !STATE.editMode;
+    btnModo.textContent = STATE.editMode ? "Desactivar modo edición" : "Activar modo edición";
+    btnModo.classList.toggle("activo", STATE.editMode);
+    document.getElementById("mapa").classList.toggle("modo-edicion-activo", STATE.editMode);
+  });
+
+  btnAgregarCadete.addEventListener("click", abrirModalNuevoCadete);
+  btnExportar.addEventListener("click", exportarZonasJSON);
+  btnRestablecer.addEventListener("click", restablecerCambiosLocales);
+
+  inicializarModalNuevoCadete();
+  inicializarModalAsignarBarrio();
+
+  mostrarAvisoCambiosSinGuardar();
+}
+
+/* --- modal: nuevo cadete ------------------------------------------------- */
+
+function abrirModalNuevoCadete() {
+  document.getElementById("input-nombre-cadete").value = "";
+  document.getElementById("input-color-cadete").value = "#2f6fed";
+  document.getElementById("modal-nuevo-cadete").classList.remove("oculto");
+  document.getElementById("input-nombre-cadete").focus();
+}
+
+function inicializarModalNuevoCadete() {
+  const modal = document.getElementById("modal-nuevo-cadete");
+  const btnGuardar = document.getElementById("btn-guardar-cadete");
+  const btnCancelar = document.getElementById("modal-nuevo-cadete-cancelar");
+
+  btnGuardar.addEventListener("click", () => {
+    const nombre = document.getElementById("input-nombre-cadete").value;
+    const color = document.getElementById("input-color-cadete").value;
+    if (agregarCadete(nombre, color)) modal.classList.add("oculto");
+  });
+  btnCancelar.addEventListener("click", () => modal.classList.add("oculto"));
+  modal.addEventListener("click", (e) => { if (e.target === modal) modal.classList.add("oculto"); });
+}
+
+/* --- modal: asignar barrio a un cadete (modo edicion) -------------------- */
+
+function inicializarModalAsignarBarrio() {
+  const modal = document.getElementById("modal-asignar-barrio");
+  const btnCancelar = document.getElementById("modal-asignar-cancelar");
+  const btnQuitar = document.getElementById("btn-quitar-asignacion");
+
+  btnCancelar.addEventListener("click", () => modal.classList.add("oculto"));
+  modal.addEventListener("click", (e) => { if (e.target === modal) modal.classList.add("oculto"); });
+
+  btnQuitar.addEventListener("click", () => {
+    if (!STATE.barrioEnEdicion) return;
+    delete STATE.zonas.asignaciones[STATE.barrioEnEdicion];
+    guardarCambiosLocales();
+    repintarUnBarrio(STATE.barrioEnEdicion);
+    renderZonas();
+    modal.classList.add("oculto");
+  });
+}
+
+function abrirModalAsignarBarrio(feature, layer) {
+  const nombre = nombreBarrio(feature);
+  STATE.barrioEnEdicion = nombre;
+
+  document.getElementById("asignar-barrio-titulo").textContent = tituloCase(nombre);
+  document.getElementById("asignar-barrio-zona").textContent = "Zona " + (zonaDeBarrio(nombre) || "—");
+
+  const lista = document.getElementById("asignar-barrio-lista");
+  const nombresCadetes = Object.keys(STATE.zonas.cadetes || {}).filter((k) => !k.startsWith("_"));
+
+  if (nombresCadetes.length === 0) {
+    lista.innerHTML = `<p class="panel-hint">Todavía no agregaste ningún cadete. Cerrá esto y usá "+ Agregar cadete" primero.</p>`;
+  } else {
+    lista.innerHTML = nombresCadetes
+      .map(
+        (nombreCadete) => `
+        <button class="modal-opcion asignar-opcion-cadete" data-nombre="${nombreCadete}">
+          <span class="zona-color-dot" style="background:${colorDeCadete(nombreCadete)}"></span>
+          ${nombreCadete}
+        </button>`
+      )
+      .join("");
+    lista.querySelectorAll(".asignar-opcion-cadete").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        STATE.zonas.asignaciones[nombre] = btn.dataset.nombre;
+        guardarCambiosLocales();
+        repintarUnBarrio(nombre);
+        renderZonas();
+        document.getElementById("modal-asignar-barrio").classList.add("oculto");
+        if (STATE.capaSeleccionada === layer) seleccionarBarrio(feature, layer);
+      });
+    });
+  }
+
+  document.getElementById("modal-asignar-barrio").classList.remove("oculto");
+}
+
+function repintarUnBarrio(nombre) {
+  const layer = STATE.featureLayerPorNombre[nombre];
+  if (layer) layer.setStyle(estiloDeBarrio(nombre));
+}
+
+/* ========================================================================= */
+/* 13. RESPONSIVE — panel movil                                              */
 /* ========================================================================= */
 
 function inicializarPanelMovil() {
@@ -480,7 +758,7 @@ function cerrarPanelMovil() {
 }
 
 /* ========================================================================= */
-/* 12. ARRANQUE                                                              */
+/* 14. ARRANQUE                                                              */
 /* ========================================================================= */
 
 async function iniciarApp() {
@@ -491,6 +769,7 @@ async function iniciarApp() {
   renderZonas();
   inicializarBuscador();
   inicializarRedistribucion();
+  inicializarModoEdicion();
   inicializarPanelMovil();
 }
 
