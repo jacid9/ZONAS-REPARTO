@@ -58,6 +58,7 @@ const STATE = {
   geojsonBarrios: null,          // FeatureCollection crudo
   zonas: null,                   // contenido de zonas.json
   capasPorZona: {},              // { "1": L.geoJSON(...), ... }
+  capasPuntosPorZona: {},        // { "10": L.layerGroup con los marcadores sin poligono propio }
   featureLayerPorNombre: {},     // { "POCITOS": layerLeaflet }
   zonasActivas: new Set(),       // zonas visibles actualmente
   cadeteZonaEfectivo: {},        // override TEMPORAL zona -> cadete (por "Falta un cadete", no se guarda)
@@ -219,6 +220,28 @@ function inicializarMapa() {
     maxZoom: 19,
     attribution: "&copy; OpenStreetMap"
   }).addTo(STATE.map);
+
+  dibujarDeposito();
+}
+
+// Marcador fijo del deposito, de donde salen los cadetes. No es parte de
+// ninguna capa de zona: siempre visible, con icono propio. Se define en
+// zonas.json -> "deposito" (nombre, direccion, lat, lng).
+function dibujarDeposito() {
+  const dep = STATE.zonas.deposito;
+  if (!dep || typeof dep.lat !== "number" || typeof dep.lng !== "number") return;
+
+  const icono = L.divIcon({
+    className: "icono-deposito",
+    html: `<div class="icono-deposito-pin"><span>📦</span></div>`,
+    iconSize: [34, 34],
+    iconAnchor: [17, 32],
+    popupAnchor: [0, -30]
+  });
+
+  L.marker([dep.lat, dep.lng], { icon: icono, zIndexOffset: 1000 })
+    .addTo(STATE.map)
+    .bindPopup(`<div class="popup-barrio"><h3>${dep.nombre || "Depósito"}</h3>${dep.direccion ? `<div class="info-fila"><b>Dirección</b><span>${dep.direccion}</span></div>` : ""}</div>`);
 }
 
 /* ========================================================================= */
@@ -249,7 +272,9 @@ function nombreBarrio(feature) {
 }
 
 function zonaDeBarrio(nombre) {
-  return (STATE.zonas.barrios || {})[nombre] || null;
+  if ((STATE.zonas.barrios || {})[nombre]) return STATE.zonas.barrios[nombre];
+  if ((STATE.zonas.puntos || {})[nombre]) return STATE.zonas.puntos[nombre].zona;
+  return null;
 }
 
 // El cadete "por defecto" de una zona: el override temporal de una
@@ -318,6 +343,65 @@ function construirCapas() {
     STATE.zonasActivas.add(zona);
     capa.addTo(STATE.map);
   });
+
+  construirCapasPuntos();
+}
+
+// Puntos sueltos (barrios de Canelones sin limite de municipio oficial
+// propio, ver zonas.json -> "puntos"). Se dibujan como circulos chicos, con
+// el mismo criterio de color que los barrios: relleno = cadete, borde = zona.
+// Se agrupan por zona en un L.layerGroup para que se prendan/apaguen junto
+// con el resto de esa zona en el panel "Zonas".
+function construirCapasPuntos() {
+  const puntos = STATE.zonas.puntos || {};
+  const porZona = {};
+
+  Object.entries(puntos).forEach(([nombre, info]) => {
+    if (nombre.startsWith("_")) return;
+    porZona[info.zona] = porZona[info.zona] || [];
+    porZona[info.zona].push([nombre, info]);
+  });
+
+  Object.entries(porZona).forEach(([zona, lista]) => {
+    const grupo = L.layerGroup();
+    lista.forEach(([nombre, info]) => {
+      const marker = crearMarcadorPunto(nombre, info);
+      marker.addTo(grupo);
+      STATE.featureLayerPorNombre[nombre] = marker; // asi el buscador tambien los encuentra
+    });
+    STATE.capasPuntosPorZona[zona] = grupo;
+    if (STATE.zonasActivas.has(zona)) grupo.addTo(STATE.map);
+  });
+}
+
+function crearMarcadorPunto(nombre, info) {
+  const marker = L.circleMarker([info.lat, info.lng], estiloDePunto(nombre, info.zona));
+  marker._puntoNombre = nombre; // para poder identificarlo despues (repintar, etc.)
+  marker.on("click", () => {
+    if (STATE.editMode) return; // el modo edicion (asignar a mano) por ahora solo aplica a barrios con poligono
+    const cadete = cadeteDeBarrio(nombre);
+    const manual = tieneAsignacionManual(nombre);
+    const html = `
+      <div class="popup-barrio">
+        <h3>${nombre}</h3>
+        <div class="info-fila"><b>Zona</b><span>Zona ${info.zona}</span></div>
+        <div class="info-fila"><b>Cadete</b><span>${cadete || "Sin asignar"}${manual ? " (manual)" : ""}</span></div>
+      </div>`;
+    marker.bindPopup(html).openPopup();
+    actualizarPanelInfo(nombre, info.zona, cadete, undefined, manual);
+  });
+  return marker;
+}
+
+function estiloDePunto(nombre, zona) {
+  const cadete = cadeteDeBarrio(nombre); // respeta asignacion manual igual que un barrio con poligono
+  return {
+    radius: 7,
+    weight: 2,
+    color: shadeColor(colorZona(zona), -25),           // borde = color de zona
+    fillColor: cadete ? colorDeCadete(cadete) : COLOR_SIN_CADETE, // relleno = cadete
+    fillOpacity: 0.85
+  };
 }
 
 // El color de fondo de cada barrio es SIEMPRE el del cadete que lo cubre
@@ -356,6 +440,11 @@ function repintarTodo() {
     STATE.capasPorZona[zona].eachLayer((layer) => {
       const nombre = nombreBarrio(layer.feature);
       layer.setStyle(estiloDeBarrio(nombre));
+    });
+  });
+  Object.entries(STATE.capasPuntosPorZona).forEach(([zona, grupo]) => {
+    grupo.eachLayer((marker) => {
+      marker.setStyle(estiloDePunto(marker._puntoNombre, zona));
     });
   });
 }
@@ -529,13 +618,15 @@ function renderZonas() {
 
   zonasOrdenadas.forEach((zona) => {
     const cantidad = STATE.capasPorZona[zona].getLayers().length;
+    const cantidadPuntos = STATE.capasPuntosPorZona[zona] ? STATE.capasPuntosPorZona[zona].getLayers().length : 0;
+    const textoCantidad = cantidadPuntos > 0 ? `${cantidad} barrios + ${cantidadPuntos} puntos` : `${cantidad} barrios`;
     const chip = document.createElement("div");
     chip.className = "zona-chip";
     chip.dataset.zona = zona;
     chip.innerHTML = `
       <span class="zona-color-dot" style="background:${colorZona(zona)}"></span>
       <span class="zona-nombre">Zona ${zona}</span>
-      <span class="zona-count">${cantidad} barrios</span>
+      <span class="zona-count">${textoCantidad}</span>
       <button class="zona-asignar-btn" data-zona="${zona}" title="Asignar toda esta zona a un cadete">→ Cadete</button>
     `;
     chip.addEventListener("click", () => toggleZona(zona, chip));
@@ -549,12 +640,15 @@ function renderZonas() {
 
 function toggleZona(zona, chipEl) {
   const capa = STATE.capasPorZona[zona];
+  const capaPuntos = STATE.capasPuntosPorZona[zona]; // puede no existir (zonas sin puntos sueltos)
   if (STATE.zonasActivas.has(zona)) {
-    STATE.map.removeLayer(capa);
+    if (capa) STATE.map.removeLayer(capa);
+    if (capaPuntos) STATE.map.removeLayer(capaPuntos);
     STATE.zonasActivas.delete(zona);
     chipEl.classList.add("inactiva");
   } else {
-    capa.addTo(STATE.map);
+    if (capa) capa.addTo(STATE.map);
+    if (capaPuntos) capaPuntos.addTo(STATE.map);
     STATE.zonasActivas.add(zona);
     chipEl.classList.remove("inactiva");
   }
@@ -837,9 +931,13 @@ function repintarUnBarrio(nombre) {
 /* --- asignar una ZONA ENTERA de una sola vez ------------------------------ */
 
 function barriosDeZona(zona) {
-  return Object.keys(STATE.zonas.barrios || {}).filter(
+  const conPoligono = Object.keys(STATE.zonas.barrios || {}).filter(
     (nombre) => STATE.zonas.barrios[nombre] === zona
   );
+  const sinPoligono = Object.keys(STATE.zonas.puntos || {}).filter(
+    (nombre) => !nombre.startsWith("_") && (STATE.zonas.puntos[nombre] || {}).zona === zona
+  );
+  return conPoligono.concat(sinPoligono);
 }
 
 function inicializarModalAsignarZona() {

@@ -1,5 +1,12 @@
 {
   "version": 1,
+  "deposito": {
+    "_comentario": "Punto fijo de salida de los cadetes. Se muestra siempre en el mapa, no depende de ninguna zona. Para moverlo, cambiá lat/lng.",
+    "nombre": "Depósito",
+    "direccion": "Camino Corrales 3076",
+    "lat": -34.8597423,
+    "lng": -56.141956
+  },
   "colores": {
     "1": "#4363d8",
     "2": "#3cb44b",
@@ -76,151 +83,70 @@
     "PIEDRAS BLANCAS": "7",
     "PRADO NUEVA SAVONA": "7",
     "SAYAGO": "7",
-    "VILLA ESPANOLA": "7"
+    "VILLA ESPANOLA": "7",
+
+    "LA PAZ": "8",
+    "LAS PIEDRAS": "8",
+    "PROGRESO": "8",
+
+    "BARROS BLANCOS": "9",
+    "PANDO": "9",
+    "SUÁREZ": "9",
+    "TOLEDO": "9",
+
+    "CIUDAD DE LA COSTA": "10",
+    "NICOLICH": "10",
+    "PASO CARRASCO": "10",
+
+    "CANELONES": "11"
+  },
+  "puntos": {
+    "_comentario": "Puntos de Canelones que NO tienen un limite de municipio oficial propio (son barrios informales dentro de un municipio mas grande, principalmente dentro de Ciudad de la Costa). Se muestran como marcador chico en vez de poligono. nombre -> {zona, lat, lng}.",
+    "Casarino": { "zona": "9", "lat": -34.7534151, "lng": -56.0723893 },
+    "Cumbres de Carrasco": { "zona": "9", "lat": -34.7623873, "lng": -55.9587324 },
+    "Joaquín Suárez": { "zona": "9", "lat": -34.7337962, "lng": -56.0327478 },
+    "Rincón de Carrasco": { "zona": "9", "lat": -34.7542336, "lng": -55.9417401 },
+
+    "Aeropuerto Internacional de Carrasco": { "zona": "10", "lat": -34.8370966, "lng": -56.0161798 },
+    "Barra de Carrasco": { "zona": "10", "lat": -34.8720324, "lng": -56.0274304 },
+    "Colinas de Carrasco": { "zona": "10", "lat": -34.7896783, "lng": -56.0181558 },
+    "Colinas de Solymar": { "zona": "10", "lat": -34.8016001, "lng": -55.9559316 },
+    "El Bosque": { "zona": "10", "lat": -34.8397312, "lng": -55.9708896 },
+    "El Dorado": { "zona": "10", "lat": -34.8484314, "lng": -56.0265636 },
+    "El Pinar": { "zona": "10", "lat": -34.7963139, "lng": -55.9096258 },
+    "La Tahona": { "zona": "10", "lat": -34.7957268, "lng": -55.982897 },
+    "Lagomar": { "zona": "10", "lat": -34.8351997, "lng": -55.9826634 },
+    "Lomas de Carrasco": { "zona": "10", "lat": -34.7846457, "lng": -55.9732439 },
+    "Lomas de Solymar": { "zona": "10", "lat": -34.8121078, "lng": -55.9400868 },
+    "Médanos de Solymar": { "zona": "10", "lat": -34.8133888, "lng": -55.9219378 },
+    "Montes de Solymar": { "zona": "10", "lat": -34.8141073, "lng": -55.9511728 },
+    "Parque Carrasco": { "zona": "10", "lat": -34.8577189, "lng": -56.0052767 },
+    "Parque de Solymar": { "zona": "10", "lat": -34.8174344, "lng": -55.957794 },
+    "Parque Miramar": { "zona": "10", "lat": -34.8674122, "lng": -56.0347532 },
+    "Pinares de Solymar": { "zona": "10", "lat": -34.8038125, "lng": -55.9364375 },
+    "San José de Carrasco": { "zona": "10", "lat": -34.8432741, "lng": -55.9921974 },
+    "Shangrilá": { "zona": "10", "lat": -34.8479619, "lng": -55.9982502 },
+    "Solymar": { "zona": "10", "lat": -34.8274247, "lng": -55.9684311 },
+    "Villa Aeroparque": { "zona": "10", "lat": -34.7931988, "lng": -55.9957158 }
   },
   "cadetes": {
     "_comentario": "EJEMPLO — reemplazá esto por tus cadetes y las zonas reales que cubre cada uno. 'zonas' son las zonas que cubre por defecto. 'color' es el color que se usa SOLO cuando a ese cadete se le asigna manualmente un barrio de otra zona (ver 'asignaciones'). Esto tambien se puede armar y editar desde la pagina, con el boton 'Agregar cadete'.",
-    "Damian": {
-      "zonas": [
-        "6",
-        "7"
-      ],
-      "color": "#e6194B"
-    },
-    "Bruno": {
-      "zonas": [
-        "1",
-        "2"
-      ],
-      "color": "#3cb44b"
-    },
-    "Diego": {
-      "zonas": [
-        "3",
-        "4"
-      ],
-      "color": "#f58231"
-    },
-    "Guzman": {
-      "zonas": [
-        "5"
-      ],
-      "color": "#911eb4"
-    },
-    "Dario": {
-      "zonas": [],
-      "color": "#0b8e74"
-    },
-    "Gerardo": {
-      "zonas": [],
-      "color": "#75ce1c"
-    },
-    "Sin Cadete": {
-      "zonas": [],
-      "color": "#797777"
-    },
-    "Camioneta": {
-      "zonas": [],
-      "color": "#9f1eb8"
-    },
-    "Agustin": {
-      "zonas": [],
-      "color": "#37ff00"
-    },
-    "Ernesto": {
-      "zonas": [],
-      "color": "#1b2946"
-    },
-    "Gabriel pereira": {
-      "zonas": [],
-      "color": "#747576"
-    }
+    "Damian": { "zonas": ["6", "7"], "color": "#e6194B" },
+    "Bruno": { "zonas": ["1", "2"], "color": "#3cb44b" },
+    "Diego": { "zonas": ["3", "4"], "color": "#f58231" },
+    "Guzman": { "zonas": ["5"], "color": "#911eb4" }
   },
   "asignaciones": {
-    "_comentario": "Asignaciones manuales por barrio, que pisan la zona por defecto. Nombre del barrio (igual que en barrios.geojson) -> nombre del cadete. Se editan desde el 'Modo edicion' de la pagina, click en un barrio. Ese barrio se pinta con el color del cadete, no el de su zona.",
-    "CASABO PAJAS BLANCAS": "Dario",
-    "LA PALOMA TOMKINSON": "Dario",
-    "NUEVO PARIS": "Dario",
-    "PASO DE LA ARENA": "Dario",
-    "TRES OMBUES PBLO VICTORIA": "Dario",
-    "CERRO": "Dario",
-    "COLON CENTRO Y NOROESTE": "Ernesto",
-    "COLON SURESTE ABAYUBA": "Ernesto",
-    "CONCILIACION": "Ernesto",
-    "LEZICA MELILLA": "Ernesto",
-    "MANGA": "Agustin",
-    "MANGA TOLEDO CHICO": "Agustin",
-    "VILLA GARCIA MANGA RURAL": "Agustin",
-    "BAÑADOS DE CARRASCO": "Sin Cadete",
-    "PUNTA RIELES BELLA ITALIA": "Agustin",
-    "BUCEO": "Bruno",
-    "CARRASCO": "Bruno",
-    "CARRASCO NORTE": "Bruno",
-    "FLOR DE MARONAS": "Agustin",
-    "LAS CANTERAS": "Bruno",
-    "MALVIN": "Bruno",
-    "MALVIN NORTE": "Bruno",
-    "MARONAS PARQUE GUARANI": "Agustin",
-    "PUNTA GORDA": "Bruno",
-    "UNION": "Bruno",
-    "AGUADA": "Damian",
-    "BARRIO SUR": "Damian",
-    "CENTRO": "Damian",
-    "CIUDAD VIEJA": "Damian",
-    "CORDON": "Damian",
-    "JACINTO VERA": "Damian",
-    "LA BLANQUEADA": "Damian",
-    "LA COMERCIAL": "Damian",
-    "FIGURITA": "Damian",
-    "LARRANAGA": "Damian",
-    "PALERMO": "Damian",
-    "PARQUE RODO": "Damian",
-    "POCITOS": "Bruno",
-    "PUNTA CARRETAS": "Bruno",
-    "REDUCTO": "Camioneta",
-    "TRES CRUCES": "Damian",
-    "PQUE BATLLE VILLA DOLORES": "Bruno",
-    "VILLA MUÑOZ RETIRO": "Damian",
-    "PUERTO": "Damian",
-    "AIRES PUROS": "Camioneta",
-    "ATAHUALPA": "Dario",
-    "BELVEDERE": "Dario",
-    "BRAZO ORIENTAL": "Ernesto",
-    "CAPURRO BELLA VISTA": "Camioneta",
-    "CASAVALLE": "Agustin",
-    "CASTRO CASTELLANOS": "Camioneta",
-    "CERRITO": "Ernesto",
-    "ITUZAINGO": "Camioneta",
-    "JARDINES DEL HIPODROMO": "Ernesto",
-    "LA TEJA": "Dario",
-    "LAS ACACIAS": "Ernesto",
-    "MERCADO MODELO Y BOLIVAR": "Camioneta",
-    "PASO DE LAS DURANAS": "Ernesto",
-    "PENAROL LAVALLEJA": "Ernesto",
-    "PIEDRAS BLANCAS": "Agustin",
-    "PRADO NUEVA SAVONA": "Dario",
-    "SAYAGO": "Ernesto",
-    "VILLA ESPANOLA": "Camioneta"
+    "_comentario": "Asignaciones manuales por barrio, que pisan la zona por defecto. Nombre del barrio (igual que en barrios.geojson) -> nombre del cadete. Se editan desde el 'Modo edicion' de la pagina, click en un barrio. Ese barrio se pinta con el color del cadete, no el de su zona."
   },
   "paquetes": {
     "_comentario": "OPCIONAL — cantidad de paquetes por barrio, para mostrar en el popup al hacer click. Nombre del barrio (igual que en barrios.geojson) -> numero. Si un barrio no aparece aca, simplemente no se muestra ese dato."
   },
   "redistribucion": {
     "_comentario": "EJEMPLO — que pasa si falta un cadete. La clave es el nombre del cadete ausente. El valor mapea cada zona que el cubria hacia la zona que la absorbe (esa zona pasa a pintarse con el color de la zona que la absorbe). No hace falta tocar el codigo, solo este JSON.",
-    "Damian": {
-      "6": "7",
-      "7": "1"
-    },
-    "Bruno": {
-      "1": "6",
-      "2": "3"
-    },
-    "Diego": {
-      "3": "5",
-      "4": "5"
-    },
-    "Guzman": {
-      "5": "6"
-    }
+    "Damian": { "6": "7", "7": "1" },
+    "Bruno": { "1": "6", "2": "3" },
+    "Diego": { "3": "5", "4": "5" },
+    "Guzman": { "5": "6" }
   }
 }
