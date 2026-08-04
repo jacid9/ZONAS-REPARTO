@@ -59,6 +59,7 @@ const STATE = {
   zonas: null,                   // contenido de zonas.json
   capasPorZona: {},              // { "1": L.geoJSON(...), ... }
   capasPuntosPorZona: {},        // { "10": L.layerGroup con los marcadores sin poligono propio }
+  capasContornoPorZona: {},      // { "10": L.layerGroup con el contorno grueso + etiqueta "Zona 10" }
   featureLayerPorNombre: {},     // { "POCITOS": layerLeaflet }
   zonasActivas: new Set(),       // zonas visibles actualmente
   cadeteZonaEfectivo: {},        // override TEMPORAL zona -> cadete (por "Falta un cadete", no se guarda)
@@ -404,6 +405,72 @@ function estiloDePunto(nombre, zona) {
   };
 }
 
+/* --- contorno grueso de zona + etiqueta flotante (como el mapa de ML) ----- */
+//
+// Fusiona (con Turf.js) todos los barrios con poligono de una zona en una
+// sola figura, y la dibuja como una linea gruesa por encima de los barrios
+// (sin relleno, para no tapar los colores de los cadetes) mas una etiqueta
+// "Zona N" flotante, igual que el mapa de Envios Flex de Mercado Libre.
+// Si Turf.js no cargo (por ejemplo sin internet) esto simplemente no se
+// dibuja, pero el resto del mapa sigue funcionando normal.
+function construirContornosDeZona() {
+  if (typeof turf === "undefined") {
+    console.warn("Turf.js no cargó: se omiten los contornos de zona (el resto del mapa funciona igual).");
+    return;
+  }
+
+  Object.keys(STATE.capasPorZona).forEach((zona) => {
+    const featuresDeLaZona = STATE.geojsonBarrios.features.filter(
+      (f) => zonaDeBarrio(nombreBarrio(f)) === zona
+    );
+    if (featuresDeLaZona.length === 0) return;
+
+    let fusion = null;
+    featuresDeLaZona.forEach((f) => {
+      try {
+        fusion = fusion ? turf.union(fusion, f) : f;
+      } catch (err) {
+        // Alguna geometria rara no se pudo fusionar: seguimos con lo que
+        // ya teniamos fusionado, no rompemos el mapa por esto.
+        console.warn(`No se pudo fusionar ${nombreBarrio(f)} en el contorno de zona ${zona}`, err);
+      }
+    });
+    if (!fusion) return;
+
+    const grupo = L.layerGroup();
+
+    L.geoJSON(fusion, {
+      interactive: false, // que los clicks pasen a traves, hacia el barrio de abajo
+      style: {
+        color: colorZona(zona),
+        weight: 3.5,
+        opacity: 0.95,
+        fill: false
+      }
+    }).addTo(grupo);
+
+    let centro;
+    try {
+      centro = turf.pointOnFeature(fusion).geometry.coordinates; // garantiza un punto DENTRO de la figura
+    } catch (_) {
+      centro = null;
+    }
+    if (centro) {
+      L.marker([centro[1], centro[0]], {
+        icon: L.divIcon({
+          className: "etiqueta-zona-wrap",
+          html: `<div class="etiqueta-zona">Zona ${zona}</div>`,
+          iconSize: null
+        }),
+        interactive: false
+      }).addTo(grupo);
+    }
+
+    STATE.capasContornoPorZona[zona] = grupo;
+    if (STATE.zonasActivas.has(zona)) grupo.addTo(STATE.map);
+  });
+}
+
 // El color de fondo de cada barrio es SIEMPRE el del cadete que lo cubre
 // (asignado a mano, o el dueño por defecto de su zona). El borde es SIEMPRE
 // el color fijo de la zona geografica, para que se siga viendo la division
@@ -641,14 +708,17 @@ function renderZonas() {
 function toggleZona(zona, chipEl) {
   const capa = STATE.capasPorZona[zona];
   const capaPuntos = STATE.capasPuntosPorZona[zona]; // puede no existir (zonas sin puntos sueltos)
+  const capaContorno = STATE.capasContornoPorZona[zona]; // puede no existir si Turf.js no cargo
   if (STATE.zonasActivas.has(zona)) {
     if (capa) STATE.map.removeLayer(capa);
     if (capaPuntos) STATE.map.removeLayer(capaPuntos);
+    if (capaContorno) STATE.map.removeLayer(capaContorno);
     STATE.zonasActivas.delete(zona);
     chipEl.classList.add("inactiva");
   } else {
     if (capa) capa.addTo(STATE.map);
     if (capaPuntos) capaPuntos.addTo(STATE.map);
+    if (capaContorno) capaContorno.addTo(STATE.map);
     STATE.zonasActivas.add(zona);
     chipEl.classList.remove("inactiva");
   }
@@ -1015,6 +1085,7 @@ async function iniciarApp() {
   await cargarDatos();
   inicializarMapa();
   construirCapas();
+  construirContornosDeZona();
   renderCadetes();
   renderZonas();
   inicializarBuscador();
