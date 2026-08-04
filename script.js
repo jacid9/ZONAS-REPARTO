@@ -68,7 +68,9 @@ const STATE = {
   editMode: false,               // modo edicion (asignar barrio a mano) activo/no
   barrioEnEdicion: null,         // nombre del barrio que se esta asignando ahora mismo
   zonaEnEdicion: null,           // zona que se esta asignando en bloque ahora mismo
-  cadeteEnEdicion: null          // nombre ORIGINAL del cadete que se esta editando (null = alta nueva)
+  cadeteEnEdicion: null,          // nombre ORIGINAL del cadete que se esta editando (null = alta nueva)
+  ultimaBusquedaDireccion: null,  // timestamp, para no pasarnos del limite de uso de Nominatim
+  marcadorDireccion: null         // el pin de la ultima direccion buscada
 };
 
 const COLOR_SIN_CADETE = "#9aa5b1"; // gris neutro: zona sin ningun cadete asignado todavia
@@ -744,7 +746,7 @@ function inicializarBuscador() {
       .slice(0, 10);
 
     if (coincidencias.length === 0) {
-      resultadosDiv.innerHTML = `<div class="resultado-item">Sin resultados</div>`;
+      resultadosDiv.innerHTML = `<div class="resultado-item resultado-hint">Sin barrios que coincidan — presioná Enter para buscarlo como dirección exacta</div>`;
     } else {
       resultadosDiv.innerHTML = coincidencias
         .map((nombre) => {
@@ -757,6 +759,13 @@ function inicializarBuscador() {
         .join("");
     }
     resultadosDiv.classList.remove("oculto");
+  });
+
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      buscarDireccion(input.value.trim());
+    }
   });
 
   resultadosDiv.addEventListener("click", (e) => {
@@ -778,6 +787,120 @@ function irABarrio(nombre) {
   STATE.map.fitBounds(layer.getBounds(), { maxZoom: 15, padding: [40, 40] });
   seleccionarBarrio(layer.feature, layer);
   if (window.innerWidth <= 900) cerrarPanelMovil();
+}
+
+/* --- buscador de direcciones (Nominatim / OpenStreetMap, gratis) --------- */
+//
+// No usamos la API de direcciones de Google: esta pagina no tiene servidor
+// propio, y una clave de Google en el codigo quedaria visible para
+// cualquiera que abra el link (riesgo de que usen tu clave y te facturen a
+// vos). Nominatim es gratis y no necesita clave, a cambio de que solo se
+// puede buscar por accion del usuario (Enter), no mientras escribe, para
+// respetar su limite de uso (aprox. 1 busqueda por segundo).
+
+async function buscarDireccion(texto) {
+  const resultadosDiv = document.getElementById("buscador-resultados");
+  if (!texto) return;
+
+  const ahora = Date.now();
+  if (STATE.ultimaBusquedaDireccion && ahora - STATE.ultimaBusquedaDireccion < 1200) {
+    resultadosDiv.innerHTML = `<div class="resultado-item resultado-hint">Esperá un segundito y probá de nuevo…</div>`;
+    resultadosDiv.classList.remove("oculto");
+    return;
+  }
+  STATE.ultimaBusquedaDireccion = ahora;
+
+  resultadosDiv.innerHTML = `<div class="resultado-item resultado-hint">Buscando dirección…</div>`;
+  resultadosDiv.classList.remove("oculto");
+
+  const url =
+    "https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=uy" +
+    "&q=" + encodeURIComponent(texto + ", Uruguay");
+
+  let resultados;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    resultados = await res.json();
+  } catch (err) {
+    resultadosDiv.innerHTML = `<div class="resultado-item resultado-hint">No se pudo buscar la dirección (¿sin internet?). Probá de nuevo.</div>`;
+    return;
+  }
+
+  if (!resultados || resultados.length === 0) {
+    resultadosDiv.innerHTML = `<div class="resultado-item resultado-hint">No encontramos esa dirección. Probá con más detalle (calle y número).</div>`;
+    return;
+  }
+
+  resultadosDiv.classList.add("oculto");
+  const { lat, lon, display_name } = resultados[0];
+  ubicarDireccionEnMapa(parseFloat(lat), parseFloat(lon), display_name);
+}
+
+function ubicarDireccionEnMapa(lat, lon, direccionTexto) {
+  if (STATE.marcadorDireccion) STATE.map.removeLayer(STATE.marcadorDireccion);
+
+  const icono = L.divIcon({
+    className: "icono-direccion",
+    html: `<div class="icono-direccion-pin"><span>📍</span></div>`,
+    iconSize: [34, 34],
+    iconAnchor: [17, 32],
+    popupAnchor: [0, -30]
+  });
+  STATE.marcadorDireccion = L.marker([lat, lon], { icon: icono, zIndexOffset: 900 }).addTo(STATE.map);
+
+  STATE.map.setView([lat, lon], 16);
+
+  const encontrado = barrioQueContienePunto(lat, lon);
+
+  let html;
+  if (encontrado) {
+    const { nombre, zona, cadete, manual } = encontrado;
+    html = `
+      <div class="popup-barrio">
+        <h3>📍 Dirección encontrada</h3>
+        <div class="info-fila"><b>Barrio</b><span>${tituloCase(nombre)}</span></div>
+        <div class="info-fila"><b>Zona</b><span>${zona ? "Zona " + zona : "—"}</span></div>
+        <div class="info-fila"><b>Cadete</b><span>${cadete || "Sin asignar"}${manual ? " (manual)" : ""}</span></div>
+      </div>`;
+    actualizarPanelInfo(nombre, zona, cadete, undefined, manual);
+  } else {
+    html = `
+      <div class="popup-barrio">
+        <h3>📍 Dirección encontrada</h3>
+        <p class="panel-hint" style="margin:0;">No cae dentro de ningún barrio cargado en el mapa todavía.</p>
+      </div>`;
+  }
+  STATE.marcadorDireccion.bindPopup(html).openPopup();
+}
+
+// Point-in-polygon con Turf.js: recorre todas las capas de barrios (Montevideo
+// + Canelones) y devuelve el primer barrio cuyo poligono contiene el punto.
+function barrioQueContienePunto(lat, lon) {
+  if (typeof turf === "undefined") return null;
+  const punto = turf.point([lon, lat]);
+
+  for (const zona of Object.keys(STATE.capasPorZona)) {
+    let encontrado = null;
+    STATE.capasPorZona[zona].eachLayer((layer) => {
+      if (encontrado) return;
+      try {
+        if (turf.booleanPointInPolygon(punto, layer.feature)) {
+          const nombre = nombreBarrio(layer.feature);
+          encontrado = {
+            nombre,
+            zona,
+            cadete: cadeteDeBarrio(nombre),
+            manual: tieneAsignacionManual(nombre)
+          };
+        }
+      } catch (_) {
+        // geometria rara: la salteamos, no rompe la busqueda
+      }
+    });
+    if (encontrado) return encontrado;
+  }
+  return null;
 }
 
 /* ========================================================================= */
