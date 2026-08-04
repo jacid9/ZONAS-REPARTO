@@ -84,57 +84,66 @@
     "PRADO NUEVA SAVONA": "7",
     "SAYAGO": "7",
     "VILLA ESPANOLA": "7",
-
     "LA PAZ": "8",
     "LAS PIEDRAS": "8",
     "PROGRESO": "8",
-
     "BARROS BLANCOS": "9",
     "PANDO": "9",
     "SUÁREZ": "9",
     "TOLEDO": "9",
-
-    "CIUDAD DE LA COSTA": "10",
     "NICOLICH": "10",
     "PASO CARRASCO": "10",
-
-    "CANELONES": "11"
+    "CANELONES": "11",
+    "AEROPUERTO INTERNACIONAL DE CARRASCO": "10",
+    "COLINAS DE SOLYMAR": "10",
+    "EL BOSQUE": "10",
+    "EL DORADO": "10",
+    "EL PINAR": "10",
+    "LA TAHONA": "10",
+    "LAGOMAR": "10",
+    "LOMAS DE CARRASCO": "10",
+    "LOMAS DE SOLYMAR": "10",
+    "MÉDANOS DE SOLYMAR": "10",
+    "MONTES DE SOLYMAR": "10",
+    "PARQUE CARRASCO": "10",
+    "PARQUE DE SOLYMAR": "10",
+    "PINARES DE SOLYMAR": "10",
+    "SAN JOSÉ DE CARRASCO": "10",
+    "SHANGRILÁ": "10",
+    "SOLYMAR": "10"
   },
   "puntos": {
-    "_comentario": "Puntos de Canelones que NO tienen un limite de municipio oficial propio (son barrios informales dentro de un municipio mas grande, principalmente dentro de Ciudad de la Costa). Se muestran como marcador chico en vez de poligono. nombre -> {zona, lat, lng}.",
-    "Casarino": { "zona": "9", "lat": -34.7534151, "lng": -56.0723893 },
-    "Cumbres de Carrasco": { "zona": "9", "lat": -34.7623873, "lng": -55.9587324 },
-    "Joaquín Suárez": { "zona": "9", "lat": -34.7337962, "lng": -56.0327478 },
-    "Rincón de Carrasco": { "zona": "9", "lat": -34.7542336, "lng": -55.9417401 },
-
-    "Aeropuerto Internacional de Carrasco": { "zona": "10", "lat": -34.8370966, "lng": -56.0161798 },
-    "Barra de Carrasco": { "zona": "10", "lat": -34.8720324, "lng": -56.0274304 },
-    "Colinas de Carrasco": { "zona": "10", "lat": -34.7896783, "lng": -56.0181558 },
-    "Colinas de Solymar": { "zona": "10", "lat": -34.8016001, "lng": -55.9559316 },
-    "El Bosque": { "zona": "10", "lat": -34.8397312, "lng": -55.9708896 },
-    "El Dorado": { "zona": "10", "lat": -34.8484314, "lng": -56.0265636 },
-    "El Pinar": { "zona": "10", "lat": -34.7963139, "lng": -55.9096258 },
-    "La Tahona": { "zona": "10", "lat": -34.7957268, "lng": -55.982897 },
-    "Lagomar": { "zona": "10", "lat": -34.8351997, "lng": -55.9826634 },
-    "Lomas de Carrasco": { "zona": "10", "lat": -34.7846457, "lng": -55.9732439 },
-    "Lomas de Solymar": { "zona": "10", "lat": -34.8121078, "lng": -55.9400868 },
-    "Médanos de Solymar": { "zona": "10", "lat": -34.8133888, "lng": -55.9219378 },
-    "Montes de Solymar": { "zona": "10", "lat": -34.8141073, "lng": -55.9511728 },
-    "Parque Carrasco": { "zona": "10", "lat": -34.8577189, "lng": -56.0052767 },
-    "Parque de Solymar": { "zona": "10", "lat": -34.8174344, "lng": -55.957794 },
-    "Parque Miramar": { "zona": "10", "lat": -34.8674122, "lng": -56.0347532 },
-    "Pinares de Solymar": { "zona": "10", "lat": -34.8038125, "lng": -55.9364375 },
-    "San José de Carrasco": { "zona": "10", "lat": -34.8432741, "lng": -55.9921974 },
-    "Shangrilá": { "zona": "10", "lat": -34.8479619, "lng": -55.9982502 },
-    "Solymar": { "zona": "10", "lat": -34.8274247, "lng": -55.9684311 },
-    "Villa Aeroparque": { "zona": "10", "lat": -34.7931988, "lng": -55.9957158 }
+    "_comentario": "Puntos de Canelones que NO tienen un limite de municipio oficial propio (son barrios informales dentro de un municipio mas grande, principalmente dentro de Ciudad de la Costa). Se muestran como marcador chico en vez de poligono. nombre -> {zona, lat, lng}."
   },
   "cadetes": {
     "_comentario": "EJEMPLO — reemplazá esto por tus cadetes y las zonas reales que cubre cada uno. 'zonas' son las zonas que cubre por defecto. 'color' es el color que se usa SOLO cuando a ese cadete se le asigna manualmente un barrio de otra zona (ver 'asignaciones'). Esto tambien se puede armar y editar desde la pagina, con el boton 'Agregar cadete'.",
-    "Damian": { "zonas": ["6", "7"], "color": "#e6194B" },
-    "Bruno": { "zonas": ["1", "2"], "color": "#3cb44b" },
-    "Diego": { "zonas": ["3", "4"], "color": "#f58231" },
-    "Guzman": { "zonas": ["5"], "color": "#911eb4" }
+    "Damian": {
+      "zonas": [
+        "6",
+        "7"
+      ],
+      "color": "#e6194B"
+    },
+    "Bruno": {
+      "zonas": [
+        "1",
+        "2"
+      ],
+      "color": "#3cb44b"
+    },
+    "Diego": {
+      "zonas": [
+        "3",
+        "4"
+      ],
+      "color": "#f58231"
+    },
+    "Guzman": {
+      "zonas": [
+        "5"
+      ],
+      "color": "#911eb4"
+    }
   },
   "asignaciones": {
     "_comentario": "Asignaciones manuales por barrio, que pisan la zona por defecto. Nombre del barrio (igual que en barrios.geojson) -> nombre del cadete. Se editan desde el 'Modo edicion' de la pagina, click en un barrio. Ese barrio se pinta con el color del cadete, no el de su zona."
@@ -144,9 +153,20 @@
   },
   "redistribucion": {
     "_comentario": "EJEMPLO — que pasa si falta un cadete. La clave es el nombre del cadete ausente. El valor mapea cada zona que el cubria hacia la zona que la absorbe (esa zona pasa a pintarse con el color de la zona que la absorbe). No hace falta tocar el codigo, solo este JSON.",
-    "Damian": { "6": "7", "7": "1" },
-    "Bruno": { "1": "6", "2": "3" },
-    "Diego": { "3": "5", "4": "5" },
-    "Guzman": { "5": "6" }
+    "Damian": {
+      "6": "7",
+      "7": "1"
+    },
+    "Bruno": {
+      "1": "6",
+      "2": "3"
+    },
+    "Diego": {
+      "3": "5",
+      "4": "5"
+    },
+    "Guzman": {
+      "5": "6"
+    }
   }
 }
