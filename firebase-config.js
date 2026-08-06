@@ -11,11 +11,11 @@
    ============================================================================= */
 
 const FIREBASE_CONFIG = {
-  apiKey: "TU_API_KEY_ACA",
-  authDomain: "TU_PROYECTO_ACA.firebaseapp.com",
-  databaseURL: "https://TU_PROYECTO_ACA-default-rtdb.firebaseio.com",
-  projectId: "TU_PROYECTO_ACA",
-  storageBucket: "TU_PROYECTO_ACA.appspot.com",
-  messagingSenderId: "TU_SENDER_ID_ACA",
-  appId: "TU_APP_ID_ACA"
+  apiKey: "AIzaSyAMw3B5C_WCY80tcZOY5un6HcfY8JG8ZyY",
+  authDomain: "zonas-de-hoy.firebaseapp.com",
+  databaseURL: "https://zonas-de-hoy-default-rtdb.firebaseio.com",
+  projectId: "zonas-de-hoy",
+  storageBucket: "zonas-de-hoy.firebasestorage.app",
+  messagingSenderId: "803486127456",
+  appId: "1:803486127456:web:219681a11f7355edf8fa05"
 };
