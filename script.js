@@ -252,7 +252,7 @@ function mostrarEstadoGuardado() {
   } else {
     el.innerHTML = `🟡 Guardado solo en este navegador — para compartir cambios, descargá <code>zonas.json</code> y subilo a GitHub (o configurá <code>firebase-config.js</code> para que sea automático).`;
   }
-  document.getElementById("cambios-sin-guardar").classList.toggle("oculto", !STATE.firebaseDB && !hayCambiosLocales());
+  document.getElementById("cambios-sin-guardar").classList.toggle("oculto", !!STATE.firebaseDB || !hayCambiosLocales());
 }
 
 function exportarZonasJSON() {
