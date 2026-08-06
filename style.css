@@ -608,16 +608,18 @@ code {
   }
   .leyenda-impresion-fila {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 8px;
     font-size: 13px;
-    padding: 3px 0;
+    padding: 5px 0;
+    line-height: 1.5;
   }
   .leyenda-impresion-dot {
     width: 12px;
     height: 12px;
     border-radius: 3px;
     flex-shrink: 0;
+    margin-top: 3px;
     border: 1px solid rgba(0,0,0,0.25);
   }
 }
