@@ -70,7 +70,8 @@ const STATE = {
   zonaEnEdicion: null,           // zona que se esta asignando en bloque ahora mismo
   cadeteEnEdicion: null,          // nombre ORIGINAL del cadete que se esta editando (null = alta nueva)
   ultimaBusquedaDireccion: null,  // timestamp, para no pasarnos del limite de uso de Nominatim
-  marcadorDireccion: null         // el pin de la ultima direccion buscada
+  marcadorDireccion: null,        // el pin de la ultima direccion buscada
+  firebaseDB: null                // referencia a Firebase Realtime Database, o null si no esta configurado
 };
 
 const COLOR_SIN_CADETE = "#9aa5b1"; // gris neutro: zona sin ningun cadete asignado todavia
@@ -110,9 +111,8 @@ async function cargarDatos() {
   if (!STATE.zonas.cadetes) STATE.zonas.cadetes = {};
   if (!STATE.zonas.asignaciones) STATE.zonas.asignaciones = {};
 
-  // Si en este navegador ya se agregaron cadetes o asignaciones antes, los
-  // traemos por encima de lo que venga en zonas.json.
-  cargarCambiosLocales();
+  inicializarFirebase();
+  await cargarCambiosCompartidos();
 }
 
 function mostrarErrorCarga(err) {
@@ -134,15 +134,71 @@ function mostrarErrorCarga(err) {
 }
 
 /* ========================================================================= */
-/* 4. PERSISTENCIA LOCAL                                                      */
-/*    Esta pagina no tiene servidor propio: los cadetes que agregues y las    */
-/*    asignaciones manuales que hagas se guardan en el navegador (localStorage)*/
-/*    para que no se pierdan al recargar. Para que el cambio se vea en el     */
-/*    link que usan los demas, hay que exportar y subir el archivo a GitHub.  */
+/* 4. PERSISTENCIA                                                           */
+/*    Esta pagina no tiene servidor propio. Los cadetes que agregues y las   */
+/*    asignaciones manuales que hagas se guardan SIEMPRE en localStorage     */
+/*    (por si se pierde la conexion), y ADEMAS en Firebase si esta           */
+/*    configurado en firebase-config.js — asi todos los que abren el link    */
+/*    ven los mismos cambios, en tiempo real, sin descargar/subir nada.      */
 /* ========================================================================= */
 
 const LS_KEY = "zonasReparto_overrides_v1";
+const FIREBASE_PATH = "zonasReparto"; // nodo dentro de la base de datos
 
+function inicializarFirebase() {
+  const cfg = typeof FIREBASE_CONFIG !== "undefined" ? FIREBASE_CONFIG : null;
+  const configCompleta = cfg && cfg.apiKey && !String(cfg.apiKey).includes("TU_API_KEY_ACA");
+  if (!configCompleta || typeof firebase === "undefined") {
+    STATE.firebaseDB = null;
+    return;
+  }
+  try {
+    firebase.initializeApp(cfg);
+    STATE.firebaseDB = firebase.database().ref(FIREBASE_PATH);
+  } catch (err) {
+    console.warn("No se pudo conectar a Firebase, sigo con guardado solo local.", err);
+    STATE.firebaseDB = null;
+  }
+}
+
+// Trae los cambios guardados (cadetes/asignaciones/redistribucion), de
+// Firebase si esta disponible (y deja un "oyente" para actualizarse solo si
+// alguien mas edita algo), o de localStorage si no.
+async function cargarCambiosCompartidos() {
+  if (STATE.firebaseDB) {
+    try {
+      const snap = await STATE.firebaseDB.once("value");
+      const datos = snap.val();
+      if (datos) aplicarCambiosCargados(datos);
+    } catch (err) {
+      console.warn("No se pudo leer Firebase, uso lo que haya en este navegador.", err);
+      cargarCambiosLocales();
+    }
+    // Oyente en vivo: si otra persona edita desde otro celular, esto se
+    // entera solo y repinta, sin que haga falta recargar la pagina.
+    STATE.firebaseDB.on("value", (snap) => {
+      const datos = snap.val();
+      if (!datos || !STATE.map) return; // todavia no termino de armarse el mapa
+      aplicarCambiosCargados(datos);
+      repintarTodo();
+      renderCadetes();
+      renderZonas();
+    });
+  } else {
+    cargarCambiosLocales();
+  }
+  mostrarEstadoGuardado();
+}
+
+function aplicarCambiosCargados(datos) {
+  if (datos.cadetes) STATE.zonas.cadetes = datos.cadetes;
+  if (datos.asignaciones) STATE.zonas.asignaciones = datos.asignaciones;
+  if (datos.redistribucion) STATE.zonas.redistribucion = datos.redistribucion;
+}
+
+// Guarda los cambios: siempre en localStorage (para no perder nada si se va
+// internet), y ademas en Firebase si esta conectado (para que se vea en
+// todos lados).
 function guardarCambiosLocales() {
   const datos = {
     cadetes: STATE.zonas.cadetes,
@@ -155,7 +211,12 @@ function guardarCambiosLocales() {
     // Si el navegador bloquea localStorage (modo privado, etc.) seguimos
     // funcionando igual, solo que no persiste entre recargas.
   }
-  mostrarAvisoCambiosSinGuardar();
+  if (STATE.firebaseDB) {
+    STATE.firebaseDB.set(datos).catch((err) => {
+      console.warn("No se pudo guardar en Firebase, el cambio quedo solo en este navegador.", err);
+    });
+  }
+  mostrarEstadoGuardado();
 }
 
 function cargarCambiosLocales() {
@@ -167,10 +228,7 @@ function cargarCambiosLocales() {
   }
   if (!guardado) return;
   try {
-    const datos = JSON.parse(guardado);
-    if (datos.cadetes) STATE.zonas.cadetes = datos.cadetes;
-    if (datos.asignaciones) STATE.zonas.asignaciones = datos.asignaciones;
-    if (datos.redistribucion) STATE.zonas.redistribucion = datos.redistribucion;
+    aplicarCambiosCargados(JSON.parse(guardado));
   } catch (_) {
     // JSON corrupto en localStorage: lo ignoramos y seguimos con zonas.json tal cual.
   }
@@ -184,8 +242,17 @@ function hayCambiosLocales() {
   }
 }
 
-function mostrarAvisoCambiosSinGuardar() {
-  document.getElementById("cambios-sin-guardar").classList.toggle("oculto", !hayCambiosLocales());
+// Chip de estado: aclara si el guardado es compartido (Firebase) o solo de
+// este navegador, para que no haya sorpresas.
+function mostrarEstadoGuardado() {
+  const el = document.getElementById("estado-guardado");
+  if (!el) return;
+  if (STATE.firebaseDB) {
+    el.innerHTML = `🟢 Guardado compartido activo — los cambios los ven todos, en cualquier celular.`;
+  } else {
+    el.innerHTML = `🟡 Guardado solo en este navegador — para compartir cambios, descargá <code>zonas.json</code> y subilo a GitHub (o configurá <code>firebase-config.js</code> para que sea automático).`;
+  }
+  document.getElementById("cambios-sin-guardar").classList.toggle("oculto", !STATE.firebaseDB && !hayCambiosLocales());
 }
 
 function exportarZonasJSON() {
@@ -201,11 +268,18 @@ function exportarZonasJSON() {
 }
 
 function restablecerCambiosLocales() {
-  if (!confirm("Esto borra los cadetes y asignaciones manuales que agregaste en este navegador, y vuelve al zonas.json original. ¿Continuar?")) return;
+  const mensaje = STATE.firebaseDB
+    ? "Esto borra los cadetes y asignaciones manuales PARA TODOS (estan guardados en Firebase, compartido). ¿Continuar?"
+    : "Esto borra los cadetes y asignaciones manuales que agregaste en este navegador, y vuelve al zonas.json original. ¿Continuar?";
+  if (!confirm(mensaje)) return;
   try {
     localStorage.removeItem(LS_KEY);
   } catch (_) {}
-  location.reload();
+  if (STATE.firebaseDB) {
+    STATE.firebaseDB.remove().finally(() => location.reload());
+  } else {
+    location.reload();
+  }
 }
 
 /* ========================================================================= */
@@ -1011,7 +1085,7 @@ function inicializarModoEdicion() {
   inicializarModalAsignarBarrio();
   inicializarModalAsignarZona();
 
-  mostrarAvisoCambiosSinGuardar();
+  mostrarEstadoGuardado();
 }
 
 /* --- modal: nuevo cadete / editar cadete ---------------------------------- */
@@ -1201,6 +1275,59 @@ function cerrarPanelMovil() {
 }
 
 /* ========================================================================= */
+/* 13b. IMPRIMIR                                                             */
+/* ========================================================================= */
+//
+// El panel lateral no sale en la version impresa (no tiene sentido en papel:
+// botones, buscador, etc). En su lugar armamos una leyenda simple (colores
+// de zona + colores de cadete) que solo se muestra al imprimir, para que la
+// hoja siga siendo entendible sin la pantalla al lado.
+
+function inicializarImprimir() {
+  document.getElementById("btn-imprimir").addEventListener("click", () => {
+    armarLeyendaImpresion();
+    window.print();
+  });
+}
+
+function armarLeyendaImpresion() {
+  const cont = document.getElementById("leyenda-impresion-contenido");
+  const zonasOrdenadas = Object.keys(STATE.capasPorZona).sort((a, b) => Number(a) - Number(b));
+  const cadetes = Object.keys(STATE.zonas.cadetes || {}).filter((k) => !k.startsWith("_"));
+
+  const filasZonas = zonasOrdenadas
+    .map(
+      (z) => `<div class="leyenda-impresion-fila">
+        <span class="leyenda-impresion-dot" style="background:${colorZona(z)}"></span>
+        Zona ${z} (borde) — ${cadeteDeZona(z) || "sin cadete fijo"}
+      </div>`
+    )
+    .join("");
+
+  const filasCadetes = cadetes
+    .map(
+      (nombre) => `<div class="leyenda-impresion-fila">
+        <span class="leyenda-impresion-dot" style="background:${colorDeCadete(nombre)}"></span>
+        ${nombre} (relleno de sus barrios)
+      </div>`
+    )
+    .join("");
+
+  cont.innerHTML = `
+    <div class="leyenda-impresion-grupo">
+      <h3>Zonas</h3>
+      ${filasZonas || "<p>Sin zonas cargadas.</p>"}
+    </div>
+    <div class="leyenda-impresion-grupo">
+      <h3>Cadetes</h3>
+      ${filasCadetes || "<p>Sin cadetes cargados.</p>"}
+    </div>
+  `;
+  document.getElementById("leyenda-impresion-titulo").textContent =
+    "Zonas de Reparto — impreso " + new Date().toLocaleDateString("es-UY");
+}
+
+/* ========================================================================= */
 /* 14. ARRANQUE                                                              */
 /* ========================================================================= */
 
@@ -1215,6 +1342,7 @@ async function iniciarApp() {
   inicializarRedistribucion();
   inicializarModoEdicion();
   inicializarPanelMovil();
+  inicializarImprimir();
 }
 
 document.addEventListener("DOMContentLoaded", iniciarApp);

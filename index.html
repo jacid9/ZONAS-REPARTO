@@ -13,6 +13,13 @@
      nada de Leaflet, es una librer\u00eda chica de geometria. -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Turf.js/6.5.0/turf.min.js"></script>
 
+<!-- Firebase: guardado compartido (opcional). Si no completaste
+     firebase-config.js, esto se carga igual pero no hace nada, y la pagina
+     sigue funcionando con guardado local por navegador como antes. -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<script src="firebase-config.js"></script>
+
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -28,6 +35,8 @@
       <input id="buscador" type="text" placeholder="Buscar barrio o escribí una dirección y Enter…" autocomplete="off">
       <div id="buscador-resultados" class="oculto"></div>
     </div>
+
+    <button id="btn-imprimir" class="icon-btn" aria-label="Imprimir mapa" title="Imprimir mapa">🖨️</button>
   </header>
 
   <!-- ============ PANEL LATERAL ============ -->
@@ -54,6 +63,7 @@
       <h2>Asignar barrios a mano</h2>
       <p class="panel-hint">Activá el modo edición y tocá cualquier barrio del mapa para asignárselo a un cadete, sin importar su zona. Ese barrio queda marcado con el color de ese cadete.</p>
       <button id="btn-modo-edicion" class="btn-secundario">Activar modo edición</button>
+      <div id="estado-guardado" class="estado-guardado"></div>
       <div id="cambios-sin-guardar" class="oculto">
         <p class="panel-hint aviso">Tenés cambios guardados en este navegador. Para que se vean en el link de todos, descargá el archivo y subilo a GitHub.</p>
         <button id="btn-exportar" class="btn-primario">Descargar zonas.json actualizado</button>
@@ -78,6 +88,14 @@
     <div id="mapa"></div>
   </main>
 
+</div>
+
+<!-- Leyenda solo para la version impresa: en pantalla esta oculta (el panel
+     lateral ya muestra esta info), pero al imprimir el panel se oculta y
+     esto aparece, para que la hoja impresa siga siendo entendible. -->
+<div id="leyenda-impresion">
+  <h2 id="leyenda-impresion-titulo">Zonas de Reparto</h2>
+  <div id="leyenda-impresion-contenido"></div>
 </div>
 
 <!-- Modal para elegir cadete ausente -->
