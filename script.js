@@ -501,21 +501,35 @@ function construirContornosDeZona() {
     );
     if (featuresDeLaZona.length === 0) return;
 
-    let fusion = null;
+    // En vez de "coser" los poligonos unos con otros (turf.union), que en
+    // formas irregulares puede fallar a mitad de camino y dejar barrios
+    // afuera sin avisar, juntamos TODOS los vertices de TODOS los barrios
+    // de la zona en una sola nube de puntos, y calculamos el contorno
+    // envolvente (convex hull) de esa nube. Por definicion matematica, el
+    // hull de los vertices de un poligono siempre contiene a ese poligono
+    // entero — asi que ningun barrio puede quedar afuera del contorno.
+    const puntos = [];
     featuresDeLaZona.forEach((f) => {
       try {
-        fusion = fusion ? turf.union(fusion, f) : f;
+        turf.coordEach(f, (coord) => puntos.push(turf.point(coord)));
       } catch (err) {
-        // Alguna geometria rara no se pudo fusionar: seguimos con lo que
-        // ya teniamos fusionado, no rompemos el mapa por esto.
-        console.warn(`No se pudo fusionar ${nombreBarrio(f)} en el contorno de zona ${zona}`, err);
+        console.warn(`No se pudieron leer los vertices de ${nombreBarrio(f)} (zona ${zona})`, err);
       }
     });
-    if (!fusion) return;
+    if (puntos.length < 3) return;
+
+    let contorno;
+    try {
+      contorno = turf.convex(turf.featureCollection(puntos));
+    } catch (err) {
+      console.warn(`No se pudo calcular el contorno de zona ${zona}`, err);
+      return;
+    }
+    if (!contorno) return;
 
     const grupo = L.layerGroup();
 
-    L.geoJSON(fusion, {
+    L.geoJSON(contorno, {
       interactive: false, // que los clicks pasen a traves, hacia el barrio de abajo
       style: {
         color: colorZona(zona),
@@ -527,7 +541,7 @@ function construirContornosDeZona() {
 
     let centro;
     try {
-      centro = turf.pointOnFeature(fusion).geometry.coordinates; // garantiza un punto DENTRO de la figura
+      centro = turf.pointOnFeature(contorno).geometry.coordinates; // garantiza un punto DENTRO de la figura
     } catch (_) {
       centro = null;
     }
