@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Zonas de Reparto — Mercado Libre Uruguay</title>
+
+<!-- Leaflet (mapa + geometria, sin Google Maps) -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<!-- Turf.js: solo se usa para fusionar los barrios de una zona en un unico
+     contorno grueso (como el mapa de zonas de Mercado Libre). No reemplaza
+     nada de Leaflet, es una librer\u00eda chica de geometria. -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Turf.js/6.5.0/turf.min.js"></script>
+
+<!-- Firebase: guardado compartido (opcional). Si no completaste
+     firebase-config.js, esto se carga igual pero no hace nada, y la pagina
+     sigue funcionando con guardado local por navegador como antes. -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<script src="firebase-config.js"></script>
+
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ============ BARRA SUPERIOR ============ -->
+  <header id="topbar">
+    <button id="btn-menu" class="icon-btn" aria-label="Abrir panel" title="Abrir panel">☰</button>
+    <h1>Zonas de Reparto <span class="topbar-sub">Montevideo &amp; Canelones</span></h1>
+
+    <div id="buscador-wrap">
+      <input id="buscador" type="text" placeholder="Buscar barrio o escribí una dirección y Enter…" autocomplete="off">
+      <div id="buscador-resultados" class="oculto"></div>
+    </div>
+
+    <button id="btn-imprimir" class="icon-btn" aria-label="Imprimir mapa" title="Imprimir mapa">🖨️</button>
+  </header>
+
+  <!-- ============ PANEL LATERAL ============ -->
+  <aside id="panel">
+
+    <section class="panel-seccion">
+      <h2>Cadetes</h2>
+      <div id="lista-cadetes"><!-- generado por script.js --></div>
+      <button id="btn-agregar-cadete" class="btn-secundario btn-chico">+ Agregar cadete</button>
+    </section>
+
+    <section class="panel-seccion">
+      <h2>Zonas <span class="panel-hint">(click para activar/desactivar)</span></h2>
+      <p class="panel-hint">El relleno de cada barrio es el color del <b>cadete</b> que lo cubre. El borde es el color fijo de su zona (siempre igual, para ubicarte geográficamente).</p>
+      <div id="lista-zonas"><!-- generado por script.js --></div>
+    </section>
+
+    <section class="panel-seccion" id="seccion-info">
+      <h2>Barrio seleccionado</h2>
+      <div id="info-barrio" class="info-vacio">Hacé click en un barrio del mapa para ver el detalle.</div>
+    </section>
+
+    <section class="panel-seccion panel-edicion">
+      <h2>Asignar barrios a mano</h2>
+      <p class="panel-hint">Activá el modo edición y tocá cualquier barrio del mapa para asignárselo a un cadete, sin importar su zona. Ese barrio queda marcado con el color de ese cadete.</p>
+      <button id="btn-modo-edicion" class="btn-secundario">Activar modo edición</button>
+      <div id="estado-guardado" class="estado-guardado"></div>
+      <div id="cambios-sin-guardar" class="oculto">
+        <p class="panel-hint aviso">Tenés cambios guardados en este navegador. Para que se vean en el link de todos, descargá el archivo y subilo a GitHub.</p>
+        <button id="btn-exportar" class="btn-primario">Descargar zonas.json actualizado</button>
+        <button id="btn-restablecer" class="btn-secundario">Deshacer todos los cambios</button>
+      </div>
+    </section>
+
+    <section class="panel-seccion panel-redistribucion">
+      <h2>Redistribución</h2>
+      <p class="panel-hint">Si un cadete falta hoy, su zona se reparte automáticamente según las reglas de <code>zonas.json</code>.</p>
+      <button id="btn-falta-cadete" class="btn-primario">Falta un cadete</button>
+      <div id="redistribucion-activa" class="oculto">
+        <p><strong>Redistribución activa:</strong> <span id="redistribucion-texto"></span></p>
+        <button id="btn-restaurar" class="btn-secundario">Restaurar zonas normales</button>
+      </div>
+    </section>
+
+  </aside>
+
+  <!-- ============ MAPA ============ -->
+  <main id="mapa-wrap">
+    <div id="mapa"></div>
+  </main>
+
+</div>
+
+<!-- Leyenda solo para la version impresa: en pantalla esta oculta (el panel
+     lateral ya muestra esta info), pero al imprimir el panel se oculta y
+     esto aparece, para que la hoja impresa siga siendo entendible. -->
+<div id="leyenda-impresion">
+  <h2 id="leyenda-impresion-titulo">Zonas de Reparto</h2>
+  <div id="leyenda-impresion-contenido"></div>
+</div>
+
+<!-- Modal para elegir cadete ausente -->
+<div id="modal-cadete" class="modal oculto">
+  <div class="modal-caja">
+    <h3>¿Qué cadete falta hoy?</h3>
+    <div id="modal-lista-cadetes"></div>
+    <button id="modal-cancelar" class="btn-secundario">Cancelar</button>
+  </div>
+</div>
+
+<!-- Modal para agregar/editar un cadete -->
+<div id="modal-nuevo-cadete" class="modal oculto">
+  <div class="modal-caja">
+    <h3 id="modal-nuevo-cadete-titulo">Nuevo cadete</h3>
+    <label class="campo-label">Nombre</label>
+    <input id="input-nombre-cadete" type="text" class="campo-input" placeholder="Ej: Ernesto">
+    <label class="campo-label">Color en el mapa</label>
+    <input id="input-color-cadete" type="color" class="campo-color" value="#2f6fed">
+    <button id="btn-guardar-cadete" class="btn-primario">Agregar cadete</button>
+    <button id="modal-nuevo-cadete-cancelar" class="btn-secundario">Cancelar</button>
+  </div>
+</div>
+
+<!-- Modal para asignar una ZONA ENTERA a un cadete de una sola vez -->
+<div id="modal-asignar-zona" class="modal oculto">
+  <div class="modal-caja">
+    <h3 id="asignar-zona-titulo">Asignar zona</h3>
+    <p class="panel-hint">Esto le pasa TODOS los barrios de esta zona a un cadete, de una sola vez. Si después querés dejar algún barrio suelto con otro cadete, usá el modo edición para ese barrio en particular.</p>
+    <div id="asignar-zona-lista"></div>
+    <button id="btn-quitar-asignacion-zona" class="btn-secundario">Quitar asignaciones manuales de esta zona</button>
+    <button id="modal-asignar-zona-cancelar" class="btn-secundario">Cancelar</button>
+  </div>
+</div>
+
+<!-- Modal para asignar un barrio a un cadete (modo edicion) -->
+<div id="modal-asignar-barrio" class="modal oculto">
+  <div class="modal-caja">
+    <h3 id="asignar-barrio-titulo">Asignar barrio</h3>
+    <p class="panel-hint">Zona por defecto: <span id="asignar-barrio-zona"></span></p>
+    <div id="asignar-barrio-lista"></div>
+    <button id="btn-quitar-asignacion" class="btn-secundario">Quitar asignación manual (volver a la zona)</button>
+    <button id="modal-asignar-cancelar" class="btn-secundario">Cancelar</button>
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>

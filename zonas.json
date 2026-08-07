@@ -1,0 +1,156 @@
+{
+  "version": 1,
+  "deposito": {
+    "_comentario": "Punto fijo de salida de los cadetes. Se muestra siempre en el mapa, no depende de ninguna zona. Para moverlo, cambiá lat/lng.",
+    "nombre": "Depósito",
+    "direccion": "Camino Corrales 3076",
+    "lat": -34.8597423,
+    "lng": -56.141956
+  },
+  "colores": {
+    "1": "#4363d8",
+    "2": "#3cb44b",
+    "3": "#ffe119",
+    "4": "#e6194B",
+    "5": "#911eb4",
+    "6": "#f58231",
+    "7": "#9A6324",
+    "8": "#000000",
+    "9": "#42d4f4",
+    "10": "#f032e6",
+    "11": "#808000"
+  },
+  "barrios": {
+    "CASABO PAJAS BLANCAS": "1",
+    "LA PALOMA TOMKINSON": "1",
+    "NUEVO PARIS": "1",
+    "PASO DE LA ARENA": "1",
+    "TRES OMBUES PBLO VICTORIA": "1",
+    "CERRO": "1",
+    "COLON CENTRO Y NOROESTE": "2",
+    "COLON SURESTE ABAYUBA": "2",
+    "CONCILIACION": "2",
+    "LEZICA MELILLA": "2",
+    "MANGA": "3",
+    "MANGA TOLEDO CHICO": "3",
+    "VILLA GARCIA MANGA RURAL": "3",
+    "BAÑADOS DE CARRASCO": "4",
+    "PUNTA RIELES BELLA ITALIA": "4",
+    "BUCEO": "5",
+    "CARRASCO": "5",
+    "CARRASCO NORTE": "5",
+    "FLOR DE MARONAS": "5",
+    "LAS CANTERAS": "5",
+    "MALVIN": "5",
+    "MALVIN NORTE": "5",
+    "MARONAS PARQUE GUARANI": "5",
+    "PUNTA GORDA": "5",
+    "UNION": "5",
+    "AGUADA": "6",
+    "BARRIO SUR": "6",
+    "CENTRO": "6",
+    "CIUDAD VIEJA": "6",
+    "CORDON": "6",
+    "JACINTO VERA": "6",
+    "LA BLANQUEADA": "6",
+    "LA COMERCIAL": "6",
+    "FIGURITA": "6",
+    "LARRANAGA": "6",
+    "PALERMO": "6",
+    "PARQUE RODO": "6",
+    "POCITOS": "6",
+    "PUNTA CARRETAS": "6",
+    "REDUCTO": "6",
+    "TRES CRUCES": "6",
+    "PQUE BATLLE VILLA DOLORES": "6",
+    "VILLA MUÑOZ RETIRO": "6",
+    "PUERTO": "6",
+    "AIRES PUROS": "7",
+    "ATAHUALPA": "7",
+    "BELVEDERE": "7",
+    "BRAZO ORIENTAL": "7",
+    "CAPURRO BELLA VISTA": "7",
+    "CASAVALLE": "7",
+    "CASTRO CASTELLANOS": "7",
+    "CERRITO": "7",
+    "ITUZAINGO": "7",
+    "JARDINES DEL HIPODROMO": "7",
+    "LA TEJA": "7",
+    "LAS ACACIAS": "7",
+    "MERCADO MODELO Y BOLIVAR": "7",
+    "PASO DE LAS DURANAS": "7",
+    "PENAROL LAVALLEJA": "7",
+    "PIEDRAS BLANCAS": "7",
+    "PRADO NUEVA SAVONA": "7",
+    "SAYAGO": "7",
+    "VILLA ESPANOLA": "7",
+    "LA PAZ": "8",
+    "LAS PIEDRAS": "8",
+    "PROGRESO": "8",
+    "BARROS BLANCOS": "9",
+    "PANDO": "9",
+    "SUÁREZ": "9",
+    "TOLEDO": "9",
+    "CIUDAD DE LA COSTA": "10",
+    "NICOLICH": "10",
+    "PASO CARRASCO": "10",
+    "CANELONES": "11"
+  },
+  "puntos": {
+    "_comentario": "Sin uso por ahora. Si en el futuro hace falta un barrio sin poligono propio, se puede agregar aca: nombre -> {zona, lat, lng}."
+  },
+  "cadetes": {
+    "_comentario": "EJEMPLO — reemplazá esto por tus cadetes y las zonas reales que cubre cada uno. 'zonas' son las zonas que cubre por defecto. 'color' es el color que se usa SOLO cuando a ese cadete se le asigna manualmente un barrio de otra zona (ver 'asignaciones'). Esto tambien se puede armar y editar desde la pagina, con el boton 'Agregar cadete'.",
+    "Damian": {
+      "zonas": [
+        "6",
+        "7"
+      ],
+      "color": "#e6194B"
+    },
+    "Bruno": {
+      "zonas": [
+        "1",
+        "2"
+      ],
+      "color": "#3cb44b"
+    },
+    "Diego": {
+      "zonas": [
+        "3",
+        "4"
+      ],
+      "color": "#f58231"
+    },
+    "Guzman": {
+      "zonas": [
+        "5"
+      ],
+      "color": "#911eb4"
+    }
+  },
+  "asignaciones": {
+    "_comentario": "Asignaciones manuales por barrio, que pisan la zona por defecto. Nombre del barrio (igual que en barrios.geojson) -> nombre del cadete. Se editan desde el 'Modo edicion' de la pagina, click en un barrio. Ese barrio se pinta con el color del cadete, no el de su zona."
+  },
+  "paquetes": {
+    "_comentario": "OPCIONAL — cantidad de paquetes por barrio, para mostrar en el popup al hacer click. Nombre del barrio (igual que en barrios.geojson) -> numero. Si un barrio no aparece aca, simplemente no se muestra ese dato."
+  },
+  "redistribucion": {
+    "_comentario": "EJEMPLO — que pasa si falta un cadete. La clave es el nombre del cadete ausente. El valor mapea cada zona que el cubria hacia la zona que la absorbe (esa zona pasa a pintarse con el color de la zona que la absorbe). No hace falta tocar el codigo, solo este JSON.",
+    "Damian": {
+      "6": "7",
+      "7": "1"
+    },
+    "Bruno": {
+      "1": "6",
+      "2": "3"
+    },
+    "Diego": {
+      "3": "5",
+      "4": "5"
+    },
+    "Guzman": {
+      "5": "6"
+    }
+  }
+}
