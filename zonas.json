@@ -34,7 +34,6 @@
     "MANGA": "3",
     "MANGA TOLEDO CHICO": "3",
     "VILLA GARCIA MANGA RURAL": "3",
-    "BAÑADOS DE CARRASCO": "4",
     "PUNTA RIELES BELLA ITALIA": "4",
     "BUCEO": "5",
     "CARRASCO": "5",
@@ -94,7 +93,9 @@
     "CIUDAD DE LA COSTA": "10",
     "NICOLICH": "10",
     "PASO CARRASCO": "10",
-    "CANELONES": "11"
+    "CANELONES": "11",
+    "BAÑADOS DE CARRASCO NORTE": "4",
+    "BAÑADOS DE CARRASCO SUR": "4"
   },
   "puntos": {
     "_comentario": "Sin uso por ahora. Si en el futuro hace falta un barrio sin poligono propio, se puede agregar aca: nombre -> {zona, lat, lng}."
